@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Админ-панель · code-server</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    :root{
+      --bg:#0b0d10; --bg-2:#111418; --panel:#14181d;
+      --border:#23282f; --border-strong:#2f363e;
+      --text:#e7ecf1; --text-dim:#8a9199; --text-faint:#5a6169;
+      --accent:#5cdbd3; --accent-dim:#2aa198;
+      --danger:#ef6461; --warn:#e0a458; --ok:#8ccf7e;
+      --mono:'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+      --sans:'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px}
+
+    .topbar{
+      display:flex; align-items:center; gap:14px;
+      padding:12px 20px; border-bottom:1px solid var(--border);
+      background:var(--bg-2);
+      font-family:var(--mono); font-size:13px;
+    }
+    .topbar .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+    .topbar a{color:var(--text-dim); text-decoration:none; padding:4px 10px; border-radius:4px}
+    .topbar a:hover{color:var(--text); background:var(--panel)}
+    .topbar a.here{color:var(--accent)}
+    .spacer{flex:1}
+    .me{font-family:var(--mono); font-size:12px; color:var(--text-dim)}
+
+    .container{max-width:1040px; margin:28px auto; padding:0 20px}
+
+    h1{font-size:22px; font-weight:600; margin:0 0 4px; letter-spacing:-.01em}
+    .sub{color:var(--text-dim); margin-bottom:22px}
+
+    .tabs{display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:22px}
+    .tab{
+      padding:10px 16px; cursor:pointer; border-bottom:2px solid transparent;
+      font-family:var(--mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase;
+      color:var(--text-dim); user-select:none;
+    }
+    .tab:hover{color:var(--text)}
+    .tab.active{color:var(--accent); border-color:var(--accent)}
+
+    .panel{display:none}
+    .panel.active{display:block}
+
+    .card{
+      background:var(--panel); border:1px solid var(--border); border-radius:10px;
+      padding:18px 20px; margin-bottom:16px;
+    }
+    .card h2{font-size:12px; margin:0 0 14px; font-family:var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); font-weight:500}
+
+    table{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:13px}
+    th,td{text-align:left; padding:10px 10px; border-bottom:1px solid var(--border)}
+    th{color:var(--text-dim); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:.06em}
+    tr:last-child td{border-bottom:0}
+    td.actions{text-align:right; white-space:nowrap}
+    td .btn + .btn{margin-left:6px}
+
+    .pill{display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; letter-spacing:.04em; border:1px solid var(--border-strong); color:var(--text-dim)}
+    .pill.admin{color:var(--accent); border-color:rgba(92,219,211,.3); background:rgba(92,219,211,.06)}
+    .pill.off{color:var(--warn); border-color:rgba(224,164,88,.3); background:rgba(224,164,88,.06)}
+    .pill.on{color:var(--ok); border-color:rgba(140,207,126,.3); background:rgba(140,207,126,.06)}
+
+    .row-form{display:grid; grid-template-columns:1.5fr 1.5fr auto auto; gap:8px; align-items:end}
+    .row-form.ext{grid-template-columns:1fr auto}
+    label{display:block; font-family:var(--mono); font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px}
+    input[type=text], input[type=password]{
+      width:100%; padding:8px 10px; border-radius:6px;
+      background:var(--bg-2); color:var(--text); border:1px solid var(--border-strong);
+      font:inherit; outline:none; font-family:var(--mono); font-size:13px;
+    }
+    input:focus{border-color:var(--accent-dim); box-shadow:0 0 0 3px rgba(92,219,211,.12)}
+
+    .btn{
+      display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:6px;
+      border:1px solid var(--border-strong); background:transparent; color:var(--text);
+      font:500 12px var(--sans); cursor:pointer; white-space:nowrap;
+      transition:border-color .15s, background .15s;
+    }
+    .btn:hover{border-color:var(--text-dim)}
+    .btn.primary{border-color:var(--accent-dim); background:var(--accent); color:#0a1213; font-weight:600}
+    .btn.primary:hover{filter:brightness(1.08)}
+    .btn.danger{border-color:rgba(239,100,97,.4); color:var(--danger)}
+    .btn.danger:hover{background:rgba(239,100,97,.08)}
+    .btn.ghost{color:var(--text-dim)}
+
+    label.check{display:inline-flex; align-items:center; gap:6px; color:var(--text-dim); font-family:var(--mono); font-size:11px; text-transform:none; letter-spacing:.02em}
+
+    .toast-wrap{position:fixed; bottom:18px; right:18px; display:flex; flex-direction:column; gap:8px; z-index:50}
+    .toast{
+      padding:10px 14px; border-radius:6px; background:var(--panel);
+      border:1px solid var(--border-strong); font-family:var(--mono); font-size:12px;
+      min-width:240px; box-shadow:0 10px 30px rgba(0,0,0,.4);
+      animation: in .2s ease-out;
+    }
+    .toast.ok{border-color:rgba(140,207,126,.35); color:var(--ok)}
+    .toast.err{border-color:rgba(239,100,97,.4); color:var(--danger)}
+    @keyframes in{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+
+    .hint{margin-top:6px; color:var(--text-faint); font-size:12px}
+    .empty{padding:18px; text-align:center; color:var(--text-faint); font-family:var(--mono); font-size:12px}
+    code{font-family:var(--mono); background:var(--bg-2); padding:1px 6px; border-radius:4px; border:1px solid var(--border)}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="dot"></span>
+    <span>code-server · admin</span>
+    <span class="spacer"></span>
+    <a href="/">← В редактор</a>
+    <a href="/_auth/account">Аккаунт</a>
+    <a href="/_auth/admin" class="here">Админ</a>
+    <span class="me" id="me-label">—</span>
+    <a href="/_auth/logout">Выйти</a>
+  </div>
+
+  <div class="container">
+    <h1>Панель управления</h1>
+    <div class="sub">Пользователи · запущенные экземпляры · общие расширения</div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="users">Пользователи</div>
+      <div class="tab" data-tab="instances">Экземпляры</div>
+      <div class="tab" data-tab="ext">Расширения</div>
+    </div>
+
+    <!-- USERS -->
+    <section class="panel active" id="panel-users">
+      <div class="card">
+        <h2>Добавить пользователя</h2>
+        <div class="row-form">
+          <div>
+            <label>username</label>
+            <input id="u-name" type="text" placeholder="alice" autocapitalize="none">
+          </div>
+          <div>
+            <label>пароль</label>
+            <input id="u-pass" type="password" placeholder="не менее 6 символов">
+          </div>
+          <div>
+            <label class="check"><input id="u-admin" type="checkbox"> admin</label>
+          </div>
+          <div><button class="btn primary" id="u-add">Создать</button></div>
+        </div>
+        <div class="hint">После создания в <code>/users/&lt;name&gt;</code> появится домашняя папка. code-server стартует при первом входе пользователя.</div>
+      </div>
+
+      <div class="card">
+        <h2>Все пользователи</h2>
+        <table id="u-table">
+          <thead>
+            <tr>
+              <th>username</th><th>роль</th><th>статус</th><th>создан</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- INSTANCES -->
+    <section class="panel" id="panel-instances">
+      <div class="card">
+        <h2>Запущенные экземпляры code-server</h2>
+        <table id="i-table">
+          <thead>
+            <tr><th>username</th><th>pid</th><th>порт</th><th>started</th><th>idle</th><th></th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- EXTENSIONS -->
+    <section class="panel" id="panel-ext">
+      <div class="card">
+        <h2>Установить расширение (общее для всех)</h2>
+        <div class="row-form ext">
+          <div>
+            <label>id или путь</label>
+            <input id="e-id" type="text" placeholder="ms-python.python  ·  esbenp.prettier-vscode  ·  /tmp/ext.vsix">
+          </div>
+          <div style="align-self:end"><button class="btn primary" id="e-add">Установить</button></div>
+        </div>
+        <div class="hint">Расширения ставятся в общий каталог <code>/opt/shared-extensions</code> и подключаются ко всем пользовательским code-server. После установки пользователям нужно перезапустить окно (или дождаться таймаута).</div>
+      </div>
+
+      <div class="card">
+        <h2>Установленные расширения</h2>
+        <table id="e-table">
+          <thead><tr><th>id</th><th>версия</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast-wrap" id="toasts"></div>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+
+    // --- toasts ---
+    function toast(msg, kind='ok'){
+      const t = document.createElement('div');
+      t.className = 'toast ' + kind;
+      t.textContent = msg;
+      $('#toasts').appendChild(t);
+      setTimeout(()=>{ t.style.transition='opacity .3s'; t.style.opacity=0; setTimeout(()=>t.remove(), 300); }, 3500);
+    }
+    async function api(method, path, body){
+      const opts = { method, headers:{} };
+      if (body !== undefined) { opts.headers['Content-Type']='application/json'; opts.body = JSON.stringify(body); }
+      const r = await fetch('/_auth/api' + path, opts);
+      const txt = await r.text();
+      let j = null; try{ j = txt ? JSON.parse(txt) : null; }catch(_){}
+      if (!r.ok) throw new Error((j && j.error) || txt || r.statusText);
+      return j;
+    }
+
+    // --- tabs ---
+    $$('.tab').forEach(t => t.addEventListener('click', () => {
+      $$('.tab').forEach(x=>x.classList.remove('active'));
+      $$('.panel').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      $('#panel-' + t.dataset.tab).classList.add('active');
+      if (t.dataset.tab === 'users') loadUsers();
+      if (t.dataset.tab === 'instances') loadInstances();
+      if (t.dataset.tab === 'ext') loadExtensions();
+    }));
+
+    // --- me ---
+    let MY_USERNAME = null;
+    async function loadMe(){
+      const me = await api('GET','/me').catch(()=>null);
+      if (!me) { location.href='/_auth/login'; return; }
+      if (!me.isAdmin) { document.body.innerHTML='<p style="padding:40px;font-family:monospace">403 — требуется роль admin.</p>'; throw 0; }
+      MY_USERNAME = me.username;
+      $('#me-label').textContent = me.username + ' · admin';
+    }
+
+    // --- Users ---
+    async function loadUsers(){
+      try{
+        const list = await api('GET','/admin/users');
+        const tbody = $('#u-table tbody');
+        tbody.innerHTML = '';
+        if (!list.length) { tbody.innerHTML = '<tr><td colspan=5 class="empty">нет пользователей</td></tr>'; return; }
+        for (const u of list) {
+          const tr = document.createElement('tr');
+          const self = u.username === MY_USERNAME;
+          tr.innerHTML = `
+            <td>${u.username}${self?' <span class="pill">вы</span>':''}</td>
+            <td>${u.isAdmin?'<span class="pill admin">admin</span>':'<span class="pill">user</span>'}</td>
+            <td>${u.disabled?'<span class="pill off">disabled</span>':'<span class="pill on">active</span>'}</td>
+            <td style="color:var(--text-dim)">${new Date(u.createdAt).toLocaleString()}</td>
+            <td class="actions">
+              <button class="btn ghost" data-act="pw">Сменить пароль</button>
+              <button class="btn" data-act="admin">${u.isAdmin?'Снять admin':'Сделать admin'}</button>
+              <button class="btn" data-act="toggle">${u.disabled?'Включить':'Отключить'}</button>
+              <button class="btn danger" data-act="del">Удалить</button>
+            </td>`;
+          tr.querySelectorAll('button').forEach(b => b.addEventListener('click', () => userAction(u, b.dataset.act)));
+          tbody.appendChild(tr);
+        }
+      } catch(e){ toast(e.message,'err'); }
+    }
+    async function userAction(u, act){
+      try{
+        if (act === 'pw'){
+          const pw = prompt(`Новый пароль для ${u.username} (≥ 6 символов):`);
+          if (!pw) return;
+          await api('POST', `/admin/users/${u.username}/password`, { password: pw });
+          toast('Пароль обновлён');
+        } else if (act === 'admin'){
+          await api('POST', `/admin/users/${u.username}/admin`, { isAdmin: !u.isAdmin });
+          toast('Роль обновлена'); loadUsers();
+        } else if (act === 'toggle'){
+          await api('POST', `/admin/users/${u.username}/disabled`, { disabled: !u.disabled });
+          toast('Статус обновлён'); loadUsers();
+        } else if (act === 'del'){
+          if (!confirm(`Удалить пользователя ${u.username}?\nДомашняя папка /users/${u.username} останется на хосте.`)) return;
+          await api('DELETE', `/admin/users/${u.username}`);
+          toast('Удалён'); loadUsers();
+        }
+      } catch(e){ toast(e.message,'err'); }
+    }
+    $('#u-add').addEventListener('click', async () => {
+      try{
+        const username = $('#u-name').value.trim();
+        const password = $('#u-pass').value;
+        const isAdmin  = $('#u-admin').checked;
+        await api('POST','/admin/users', { username, password, isAdmin });
+        $('#u-name').value=''; $('#u-pass').value=''; $('#u-admin').checked=false;
+        toast('Пользователь создан'); loadUsers();
+      } catch(e){ toast(e.message,'err'); }
+    });
+
+    // --- Instances ---
+    function fmtDur(ms){
+      const s = Math.floor(ms/1000), m = Math.floor(s/60), h = Math.floor(m/60);
+      if (h) return `${h}ч ${m%60}м`;
+      if (m) return `${m}м ${s%60}с`;
+      return `${s}с`;
+    }
+    async function loadInstances(){
+      try{
+        const list = await api('GET','/admin/instances');
+        const tbody = $('#i-table tbody');
+        tbody.innerHTML = '';
+        if (!list.length) { tbody.innerHTML = '<tr><td colspan=6 class="empty">нет запущенных экземпляров</td></tr>'; return; }
+        for (const i of list) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${i.username}</td>
+            <td style="color:var(--text-dim)">${i.pid||'—'}</td>
+            <td>${i.port}</td>
+            <td style="color:var(--text-dim)">${fmtDur(Date.now()-i.startedAt)} назад</td>
+            <td style="color:var(--text-dim)">${fmtDur(i.idleMs)}</td>
+            <td class="actions"><button class="btn danger">Остановить</button></td>`;
+          tr.querySelector('button').addEventListener('click', async () => {
+            try { await api('POST', `/admin/instances/${i.username}/stop`); toast('Остановлено'); loadInstances(); }
+            catch(e){ toast(e.message,'err'); }
+          });
+          tbody.appendChild(tr);
+        }
+      } catch(e){ toast(e.message,'err'); }
+    }
+
+    // --- Extensions ---
+    async function loadExtensions(){
+      try{
+        const list = await api('GET','/admin/extensions');
+        const tbody = $('#e-table tbody');
+        tbody.innerHTML = '';
+        if (!list.length) { tbody.innerHTML = '<tr><td colspan=3 class="empty">нет установленных расширений</td></tr>'; return; }
+        for (const e of list) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${e.id}</td>
+            <td style="color:var(--text-dim)">${e.version || '—'}</td>
+            <td class="actions"><button class="btn danger">Удалить</button></td>`;
+          tr.querySelector('button').addEventListener('click', async () => {
+            if (!confirm(`Удалить расширение ${e.id}?`)) return;
+            try { await api('DELETE', `/admin/extensions/${encodeURIComponent(e.id)}`); toast('Удалено'); loadExtensions(); }
+            catch(err){ toast(err.message,'err'); }
+          });
+          tbody.appendChild(tr);
+        }
+      } catch(e){ toast(e.message,'err'); }
+    }
+    $('#e-add').addEventListener('click', async () => {
+      const id = $('#e-id').value.trim();
+      if (!id) return;
+      $('#e-add').disabled = true; $('#e-add').textContent = 'Устанавливаю…';
+      try { await api('POST','/admin/extensions', { id }); toast('Расширение установлено'); $('#e-id').value=''; loadExtensions(); }
+      catch(e){ toast(e.message,'err'); }
+      finally { $('#e-add').disabled = false; $('#e-add').textContent = 'Установить'; }
+    });
+
+    (async () => { await loadMe(); loadUsers(); })();
+  </script>
+</body>
+</html>

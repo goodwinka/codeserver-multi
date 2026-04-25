@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>code-server · вход</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    :root{
+      --bg:#0b0d10; --bg-2:#111418; --panel:#14181d;
+      --border:#23282f; --border-strong:#2f363e;
+      --text:#e7ecf1; --text-dim:#8a9199; --text-faint:#5a6169;
+      --accent:#5cdbd3; --accent-dim:#2aa198;
+      --danger:#ef6461;
+      --mono:'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+      --sans:'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    }
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font-family:var(--sans); font-size:14px; line-height:1.5;
+      display:grid; place-items:center;
+      background-image:
+        radial-gradient(1200px 600px at 20% -10%, rgba(92,219,211,.06), transparent 60%),
+        radial-gradient(800px 500px at 100% 100%, rgba(92,219,211,.04), transparent 60%);
+    }
+    .wrap{width:100%; max-width:380px; padding:24px}
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      font-family:var(--mono); font-size:13px; color:var(--text-dim);
+      margin-bottom:28px; letter-spacing:.02em;
+    }
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+    .card{
+      background:var(--panel); border:1px solid var(--border); border-radius:10px;
+      padding:28px 26px; box-shadow:0 12px 40px rgba(0,0,0,.35);
+    }
+    h1{
+      margin:0 0 6px; font-size:20px; font-weight:600; letter-spacing:-.01em;
+    }
+    .sub{color:var(--text-dim); font-size:13px; margin-bottom:22px}
+    label{
+      display:block; font-family:var(--mono); font-size:11px;
+      color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em;
+      margin:14px 0 6px;
+    }
+    input[type=text], input[type=password]{
+      width:100%; padding:10px 12px; border-radius:6px;
+      background:var(--bg-2); color:var(--text);
+      border:1px solid var(--border-strong); outline:none;
+      font:inherit; transition:border-color .15s, box-shadow .15s;
+    }
+    input:focus{border-color:var(--accent-dim); box-shadow:0 0 0 3px rgba(92,219,211,.12)}
+    button{
+      margin-top:22px; width:100%; padding:10px 14px; border-radius:6px;
+      border:1px solid var(--accent-dim); background:var(--accent); color:#0a1213;
+      font:600 14px var(--sans); cursor:pointer; letter-spacing:.01em;
+      transition:transform .05s, filter .15s;
+    }
+    button:hover{filter:brightness(1.08)}
+    button:active{transform:translateY(1px)}
+    .error{
+      margin-top:14px; padding:10px 12px; border-radius:6px;
+      background:rgba(239,100,97,.08); border:1px solid rgba(239,100,97,.3);
+      color:var(--danger); font-size:13px;
+      display:none;
+    }
+    .error.show{display:block}
+    .foot{
+      margin-top:18px; font-family:var(--mono); font-size:11px;
+      color:var(--text-faint); text-align:center; letter-spacing:.04em;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <span class="dot"></span>
+      <span>code-server · multi-user</span>
+    </div>
+    <form class="card" method="POST" action="/_auth/login" autocomplete="on">
+      <h1>Вход в рабочее пространство</h1>
+      <div class="sub">Ваше имя пользователя и пароль, выданные администратором.</div>
+
+      <label for="u">Пользователь</label>
+      <input id="u" name="username" type="text" autocapitalize="none" autocomplete="username" required autofocus>
+
+      <label for="p">Пароль</label>
+      <input id="p" name="password" type="password" autocomplete="current-password" required>
+
+      <input type="hidden" name="next" value="">
+      <button type="submit">Войти →</button>
+
+      <div id="err" class="error">Неверный логин или пароль.</div>
+    </form>
+    <div class="foot">Powered by code-server · WebSocket-ready proxy</div>
+  </div>
+  <script>
+    // Показать ошибку, если вернулись с ?e=1
+    const url = new URL(location.href);
+    if (url.searchParams.get('e')) document.getElementById('err').classList.add('show');
+    const next = url.searchParams.get('next');
+    if (next) document.querySelector('input[name=next]').value = next;
+  </script>
+</body>
+</html>

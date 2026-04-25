@@ -1,0 +1,9 @@
+{
+  "_comment": "Расширения, которые будут установлены в /opt/shared-extensions при первом запуске, если каталог пуст. В админ-панели можно добавлять/удалять в любое время.",
+  "extensions": [
+    "esbenp.prettier-vscode",
+    "eamodio.gitlens",
+    "ms-python.python",
+    "dbaeumer.vscode-eslint"
+  ]
+}

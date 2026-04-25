@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Аккаунт · code-server</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    :root{
+      --bg:#0b0d10; --bg-2:#111418; --panel:#14181d;
+      --border:#23282f; --border-strong:#2f363e;
+      --text:#e7ecf1; --text-dim:#8a9199; --text-faint:#5a6169;
+      --accent:#5cdbd3; --accent-dim:#2aa198;
+      --danger:#ef6461; --warn:#e0a458; --ok:#8ccf7e;
+      --mono:'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+      --sans:'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px}
+    .topbar{
+      display:flex; align-items:center; gap:14px;
+      padding:12px 20px; border-bottom:1px solid var(--border);
+      background:var(--bg-2);
+      font-family:var(--mono); font-size:13px;
+    }
+    .topbar .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+    .topbar a{color:var(--text-dim); text-decoration:none; padding:4px 10px; border-radius:4px}
+    .topbar a:hover{color:var(--text); background:var(--panel)}
+    .topbar a.here{color:var(--accent)}
+    .spacer{flex:1}
+
+    .container{max-width:760px; margin:40px auto; padding:0 20px}
+    h1{font-size:22px; font-weight:600; margin:0 0 4px; letter-spacing:-.01em}
+    .sub{color:var(--text-dim); margin-bottom:28px}
+
+    .card{
+      background:var(--panel); border:1px solid var(--border); border-radius:10px;
+      padding:22px 22px; margin-bottom:18px;
+    }
+    .card h2{font-size:14px; margin:0 0 14px; font-family:var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--text-dim); font-weight:500}
+
+    .row{display:flex; align-items:center; gap:14px; padding:10px 0; border-top:1px solid var(--border)}
+    .row:first-of-type{border-top:0; padding-top:0}
+    .row .k{width:160px; color:var(--text-dim); font-family:var(--mono); font-size:12px; letter-spacing:.04em}
+    .row .v{flex:1; font-family:var(--mono); font-size:13px; color:var(--text)}
+    .pill{
+      display:inline-block; padding:2px 8px; border-radius:999px;
+      font-family:var(--mono); font-size:11px; letter-spacing:.04em;
+      border:1px solid var(--border-strong); color:var(--text-dim);
+    }
+    .pill.admin{color:var(--accent); border-color:rgba(92,219,211,.3); background:rgba(92,219,211,.06)}
+
+    label{display:block; font-family:var(--mono); font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin:14px 0 6px}
+    input{
+      width:100%; padding:9px 11px; border-radius:6px;
+      background:var(--bg-2); color:var(--text); border:1px solid var(--border-strong);
+      font:inherit; outline:none;
+    }
+    input:focus{border-color:var(--accent-dim); box-shadow:0 0 0 3px rgba(92,219,211,.12)}
+
+    .btn{
+      display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:6px;
+      border:1px solid var(--border-strong); background:transparent; color:var(--text);
+      font:500 13px var(--sans); cursor:pointer; text-decoration:none;
+      transition:border-color .15s, background .15s;
+    }
+    .btn:hover{border-color:var(--text-dim)}
+    .btn.primary{border-color:var(--accent-dim); background:var(--accent); color:#0a1213; font-weight:600}
+    .btn.primary:hover{filter:brightness(1.08)}
+    .btn.danger{border-color:rgba(239,100,97,.4); color:var(--danger)}
+    .btn.danger:hover{background:rgba(239,100,97,.08)}
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px}
+
+    .msg{margin-top:12px; font-size:13px; font-family:var(--mono)}
+    .msg.ok{color:var(--ok)} .msg.err{color:var(--danger)}
+
+    .hint{margin-top:8px; color:var(--text-faint); font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="dot"></span>
+    <span>code-server · multi-user</span>
+    <span class="spacer"></span>
+    <a href="/" >← В редактор</a>
+    <a href="/_auth/account" class="here">Аккаунт</a>
+    <a id="admin-link" href="/_auth/admin" style="display:none">Админ</a>
+    <a href="/_auth/logout">Выйти</a>
+  </div>
+
+  <div class="container">
+    <h1>Аккаунт</h1>
+    <div class="sub">Управление своим пользователем code-server.</div>
+
+    <div class="card">
+      <h2>Профиль</h2>
+      <div class="row"><div class="k">username</div><div class="v" id="me-user">—</div></div>
+      <div class="row"><div class="k">роль</div><div class="v"><span id="me-role" class="pill">user</span></div></div>
+      <div class="row"><div class="k">домашняя папка</div><div class="v" id="me-home">—</div></div>
+      <div class="actions">
+        <a class="btn" href="/">Открыть рабочее пространство</a>
+        <a class="btn danger" href="/_auth/logout">Выйти / сменить пользователя</a>
+      </div>
+      <div class="hint">«Выйти / сменить пользователя» завершит сессию и вернёт на страницу входа, где можно войти под другим аккаунтом.</div>
+    </div>
+
+    <div class="card">
+      <h2>Смена пароля</h2>
+      <label for="cur">Текущий пароль</label>
+      <input id="cur" type="password" autocomplete="current-password">
+      <label for="new">Новый пароль</label>
+      <input id="new" type="password" autocomplete="new-password">
+      <label for="new2">Повторите новый пароль</label>
+      <input id="new2" type="password" autocomplete="new-password">
+      <div class="actions">
+        <button class="btn primary" id="pw-btn">Сохранить</button>
+      </div>
+      <div id="pw-msg" class="msg"></div>
+    </div>
+  </div>
+
+  <script>
+    async function loadMe(){
+      try{
+        const r = await fetch('/_auth/api/me');
+        if(!r.ok) throw new Error();
+        const me = await r.json();
+        document.getElementById('me-user').textContent = me.username;
+        const role = document.getElementById('me-role');
+        role.textContent = me.isAdmin ? 'admin' : 'user';
+        if (me.isAdmin) { role.classList.add('admin'); document.getElementById('admin-link').style.display=''; }
+        document.getElementById('me-home').textContent = '/users/' + me.username;
+      }catch(e){ location.href = '/_auth/login'; }
+    }
+    document.getElementById('pw-btn').addEventListener('click', async () => {
+      const cur = document.getElementById('cur').value;
+      const n1  = document.getElementById('new').value;
+      const n2  = document.getElementById('new2').value;
+      const msg = document.getElementById('pw-msg');
+      msg.className='msg';
+      if (!cur || !n1) { msg.textContent='Заполните все поля.'; msg.classList.add('err'); return; }
+      if (n1 !== n2) { msg.textContent='Пароли не совпадают.'; msg.classList.add('err'); return; }
+      if (n1.length < 6) { msg.textContent='Пароль должен быть ≥ 6 символов.'; msg.classList.add('err'); return; }
+      const r = await fetch('/_auth/api/me/password', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({currentPassword:cur, newPassword:n1})
+      });
+      const j = await r.json().catch(()=>({}));
+      if (r.ok) { msg.textContent='Пароль обновлён.'; msg.classList.add('ok');
+        document.getElementById('cur').value=''; document.getElementById('new').value=''; document.getElementById('new2').value='';
+      } else { msg.textContent = j.error || 'Ошибка.'; msg.classList.add('err'); }
+    });
+    loadMe();
+  </script>
+</body>
+</html>

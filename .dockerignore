@@ -1,0 +1,9 @@
+node_modules
+auth-proxy/node_modules
+users/
+config/sessions/
+config/users.json
+.git
+.gitignore
+*.log
+.DS_Store
