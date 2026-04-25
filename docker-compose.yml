@@ -21,6 +21,8 @@ services:
       BOOTSTRAP_ADMIN_PASSWORD: "admin123"
       # Имя cookie с сессией
       SESSION_COOKIE_NAME: "cs_sid"
+      # API-ключ для Qwen Code (локальный LLM не требует настоящего ключа)
+      QWEN_API_KEY: "sk-no-key-required"
     restart: unless-stopped
     # code-server любит много file watchers
     ulimits:
