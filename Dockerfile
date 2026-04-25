@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl ca-certificates gnupg lsb-release \
         git openssh-client sudo less vim-tiny \
-        build-essential python3 python3-pip python3-venv \
+        build-essential libncurses5-dev python3 python3-pip python3-venv \
         locales tzdata \
     && sed -i 's/# en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen \
     && rm -rf /var/lib/apt/lists/*
