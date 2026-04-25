@@ -89,7 +89,8 @@ COPY auth-proxy/ /app/
 # Scripts and default config
 COPY scripts/ /scripts/
 COPY config/ /config.default/
-RUN chmod +x /scripts/*.sh
+# Strip any Windows-style \r in case scripts were checked out with CRLF line endings.
+RUN sed -i 's/\r//' /scripts/*.sh && chmod +x /scripts/*.sh
 
 EXPOSE 8080
 

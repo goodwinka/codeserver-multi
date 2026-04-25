@@ -1,0 +1,4 @@
+# Enforce LF line endings for shell scripts so Windows checkouts with
+# core.autocrlf=true don't produce bash\r shebangs that break /usr/bin/env.
+*.sh    text eol=lf
+*.bash  text eol=lf
