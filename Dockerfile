@@ -47,14 +47,18 @@ RUN pip3 install --no-cache-dir --break-system-packages \
         "python-lsp-server[all]" \
         cmake-language-server
 
-# Node.js language servers installed globally:
+# Node.js language servers + AI coding CLIs installed globally:
 #   bash-language-server         — Bash LSP
 #   vscode-langservers-extracted — CSS / HTML / JSON language servers
 #   pyright                      — Python type-checking LSP
+#   @anthropic-ai/claude-code    — Claude Code CLI (claude command)
+#   qwen-code                    — Qwen Code CLI (qwen command)
 RUN npm install -g --no-fund --no-audit \
         bash-language-server \
         vscode-langservers-extracted \
-        pyright
+        pyright \
+        @anthropic-ai/claude-code \
+        qwen-code
 
 # Kotlin language server — download prebuilt release from GitHub
 ARG KOTLIN_LS_VERSION=1.3.13
