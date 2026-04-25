@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const { execSync } = require('child_process');
 
 const USERS_FILE = process.env.USERS_FILE || '/config/users.json';
 const USERS_ROOT = process.env.USERS_ROOT || '/users';
@@ -11,6 +12,25 @@ const USERNAME_RE = /^[a-z][a-z0-9_-]{2,31}$/;
 
 function ensureDir(p) {
   fs.mkdirSync(p, { recursive: true });
+}
+
+// Creates a no-login system user if one does not already exist.
+function ensureLinuxUser(username) {
+  try {
+    execSync(`id -u ${username}`, { stdio: 'ignore' });
+  } catch (_) {
+    execSync(
+      `useradd --no-create-home --shell /usr/sbin/nologin --home-dir /users/${username} ${username}`,
+      { stdio: 'ignore' }
+    );
+  }
+}
+
+// Removes the Linux system user (home directory is intentionally kept).
+function removeLinuxUser(username) {
+  try {
+    execSync(`userdel ${username}`, { stdio: 'ignore' });
+  } catch (_) { /* ignore — user may not exist */ }
 }
 
 class UserStore {
@@ -37,6 +57,7 @@ class UserStore {
   }
 
   _ensureHome(username) {
+    ensureLinuxUser(username);
     const home = path.join(USERS_ROOT, username);
     ensureDir(home);
     // Readable sample file on first start, only if the directory is empty.
@@ -50,6 +71,11 @@ class UserStore {
         );
       }
     } catch (_) { /* ignore */ }
+    // Give the Linux user full ownership; block access from every other account.
+    try {
+      execSync(`chown -R ${username}:${username} ${home}`);
+      execSync(`chmod 700 ${home}`);
+    } catch (_) { /* ignore — may fail outside a real Linux container */ }
     return home;
   }
 
@@ -103,6 +129,7 @@ class UserStore {
     this.users = this.users.filter(u => u.username !== username);
     if (this.users.length === before) throw new Error('User not found');
     this._save();
+    removeLinuxUser(username);
     // Home directory НЕ удаляется — это осознанно, чтобы не терять данные пользователя.
     // Чистка — задача администратора на хосте.
   }

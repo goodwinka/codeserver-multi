@@ -1,10 +1,21 @@
 'use strict';
 
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const net = require('net');
+
+// Returns { uid, gid } for the given Linux username, or null if not found.
+function getLinuxUidGid(username) {
+  try {
+    const uid = parseInt(execSync(`id -u ${username}`, { encoding: 'utf8' }).trim(), 10);
+    const gid = parseInt(execSync(`id -g ${username}`, { encoding: 'utf8' }).trim(), 10);
+    return { uid, gid };
+  } catch (_) {
+    return null;
+  }
+}
 
 const USERS_ROOT = process.env.USERS_ROOT || '/users';
 const SHARED_EXT_DIR = process.env.SHARED_EXT_DIR || '/opt/shared-extensions';
@@ -84,6 +95,15 @@ class InstanceManager {
     fs.mkdirSync(dataDir, { recursive: true });
     fs.mkdirSync(SHARED_EXT_DIR, { recursive: true });
 
+    // Transfer ownership to the Linux user and restrict access from other accounts.
+    const ugid = getLinuxUidGid(username);
+    if (ugid) {
+      try {
+        execSync(`chown -R ${username}:${username} ${userHome}`);
+        execSync(`chmod 700 ${userHome}`);
+      } catch (_) { /* ignore — may fail outside a real Linux container */ }
+    }
+
     const port = await findFreePort();
     const args = [
       '--bind-addr', `127.0.0.1:${port}`,
@@ -96,7 +116,7 @@ class InstanceManager {
     ];
 
     console.log(`[instances] starting code-server for ${username} on :${port}`);
-    const child = spawn('code-server', args, {
+    const spawnOpts = {
       env: {
         ...process.env,
         HOME: userHome,
@@ -105,7 +125,13 @@ class InstanceManager {
         // Отключаем встроенный прокси code-server к marketplace — админ сам ставит расширения
       },
       stdio: ['ignore', 'pipe', 'pipe']
-    });
+    };
+    // Drop privileges so code-server runs as the Linux user, not as root.
+    if (ugid) {
+      spawnOpts.uid = ugid.uid;
+      spawnOpts.gid = ugid.gid;
+    }
+    const child = spawn('code-server', args, spawnOpts);
 
     child.stdout.on('data', d => process.stdout.write(`[cs:${username}] ${d}`));
     child.stderr.on('data', d => process.stderr.write(`[cs:${username}] ${d}`));
