@@ -1,0 +1,8 @@
+{
+  "_comment": "Настройки Claude Code CLI (~/.claude/settings.json), общие для всех пользователей. Копируются в /opt/shared-claude-settings/ при запуске контейнера и подключаются симлинком к {userHome}/.claude/settings.json каждого пользователя.",
+
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+
+  "autoUpdates": false,
+  "telemetry.enabled": false
+}

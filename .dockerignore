@@ -1,6 +1,6 @@
 node_modules
 auth-proxy/node_modules
-users/
+users/*
 config/sessions/
 config/users.json
 .git
