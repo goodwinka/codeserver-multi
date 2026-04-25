@@ -8,12 +8,30 @@ fi
 if [ ! -f /config/extensions.json ] && [ -f /config.default/extensions.json ]; then
   cp /config.default/extensions.json /config/extensions.json
 fi
+if [ ! -f /config/shared-machine-settings.json ] && [ -f /config.default/shared-machine-settings.json ]; then
+  cp /config.default/shared-machine-settings.json /config/shared-machine-settings.json
+fi
 
-mkdir -p /config/sessions /opt/shared-extensions /users
+mkdir -p /config/sessions /opt/shared-extensions /opt/shared-machine-settings /users
 # Prevent users from listing each other's home directories.
 # Individual home dirs get chmod 700 when they are created or first accessed.
 chmod 711 /users
 chmod 755 /opt/shared-extensions
+chmod 755 /opt/shared-machine-settings
+
+# Синхронизируем машинные настройки VS Code из /config в /opt/shared-machine-settings/.
+# Файл /opt/shared-machine-settings/settings.json — общий для всех пользователей;
+# каждый пользовательский {dataDir}/Machine/settings.json — симлинк на него.
+# Перезаписываем при каждом запуске, чтобы изменения в /config сразу вступали в силу.
+if [ -f /config/shared-machine-settings.json ]; then
+  # Убираем служебный ключ _comment перед записью, чтобы VS Code не ругался
+  node -e "
+const src = JSON.parse(require('fs').readFileSync('/config/shared-machine-settings.json', 'utf8'));
+delete src['_comment'];
+require('fs').writeFileSync('/opt/shared-machine-settings/settings.json', JSON.stringify(src, null, 2));
+"
+  echo "[entrypoint] shared machine settings deployed to /opt/shared-machine-settings/settings.json"
+fi
 
 # Если в /config/extensions.json есть список и общий каталог расширений ещё пуст —
 # установим их (удобно для первичного bootstrap).

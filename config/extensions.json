@@ -9,6 +9,9 @@
     "llvm-vs-code-extensions.vscode-clangd",
     "ms-vscode.cmake-tools",
     "mads-hartmann.bash-ide-vscode",
-    "fwcd.kotlin"
+    "fwcd.kotlin",
+
+    "anthropic.claude-code",
+    "Alibaba-Cloud.qwen-coder-vscode"
   ]
 }

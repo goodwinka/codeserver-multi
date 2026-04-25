@@ -1,0 +1,15 @@
+{
+  "_comment": "Машинные настройки VS Code, общие для всех пользователей. Копируются в /opt/shared-machine-settings/ при запуске контейнера и подключаются симлинком к {userDataDir}/Machine/settings.json каждого пользователя. Пользователи не могут их переопределить.",
+
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false,
+  "telemetry.telemetryLevel": "off",
+
+  "claude.loginRequired": false,
+  "claude.auth.loginOnStartup": false,
+  "claude.telemetry.enabled": false,
+
+  "qwen-coder.loginRequired": false,
+  "qwen-coder.auth.loginOnStartup": false,
+  "qwen-coder.telemetry.enabled": false
+}
