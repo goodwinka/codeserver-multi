@@ -4,6 +4,11 @@
     "esbenp.prettier-vscode",
     "eamodio.gitlens",
     "ms-python.python",
-    "dbaeumer.vscode-eslint"
+    "dbaeumer.vscode-eslint",
+
+    "llvm-vs-code-extensions.vscode-clangd",
+    "ms-vscode.cmake-tools",
+    "mads-hartmann.bash-ide-vscode",
+    "fwcd.kotlin"
   ]
 }
