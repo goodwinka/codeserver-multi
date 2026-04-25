@@ -12,6 +12,6 @@
     "fwcd.kotlin",
 
     "anthropic.claude-code",
-    "Alibaba-Cloud.qwen-coder-vscode"
+    "qwenlm.qwen-code-vscode-ide-companion"
   ]
 }
