@@ -11,7 +11,17 @@ const EXT_ID_RE = /^[a-zA-Z0-9][\w.-]*\.[a-zA-Z0-9][\w.-]*(@[\w.+-]+)?$/;
 
 function runCodeServer(args, { timeoutMs = 180_000 } = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn('code-server', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn('code-server', args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        EXTENSIONS_GALLERY: JSON.stringify({
+          serviceUrl: 'https://marketplace.visualstudio.com/_apis/public/gallery',
+          cacheUrl: 'https://vscode.blob.core.windows.net/gallery/index',
+          itemUrl: 'https://marketplace.visualstudio.com/items',
+        }),
+      },
+    });
     let stdout = '';
     let stderr = '';
     const timer = setTimeout(() => {
