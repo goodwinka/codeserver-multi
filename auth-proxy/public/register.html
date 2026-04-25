@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>code-server · вход</title>
+  <title>code-server · регистрация</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -69,10 +69,13 @@
       display:none;
     }
     .error.show{display:block}
+    .hint{color:var(--text-faint); font-family:var(--mono); font-size:11px; margin-top:6px}
     .foot{
       margin-top:18px; font-family:var(--mono); font-size:11px;
       color:var(--text-faint); text-align:center; letter-spacing:.04em;
     }
+    .foot a{color:var(--accent-dim); text-decoration:none}
+    .foot a:hover{text-decoration:underline}
   </style>
 </head>
 <body>
@@ -81,35 +84,66 @@
       <span class="dot"></span>
       <span>code-server · multi-user</span>
     </div>
-    <form class="card" method="POST" action="/_auth/login" autocomplete="on">
-      <h1>Вход в рабочее пространство</h1>
-      <div class="sub">Ваше имя пользователя и пароль, выданные администратором.</div>
+    <form class="card" id="form">
+      <h1>Регистрация</h1>
+      <div class="sub">Создайте новую учётную запись.</div>
 
       <label for="u">Пользователь</label>
-      <input id="u" name="username" type="text" autocapitalize="none" autocomplete="username" required autofocus>
+      <input id="u" name="username" type="text" autocapitalize="none" autocomplete="username" required autofocus placeholder="например alice">
+      <div class="hint">3–32 символа, строчные буквы, [a-z0-9_-]</div>
 
       <label for="p">Пароль</label>
-      <input id="p" name="password" type="password" autocomplete="current-password" required>
+      <input id="p" name="password" type="password" autocomplete="new-password" required placeholder="не менее 6 символов">
 
-      <input type="hidden" name="next" value="">
-      <button type="submit">Войти →</button>
+      <label for="p2">Пароль ещё раз</label>
+      <input id="p2" name="password2" type="password" autocomplete="new-password" required placeholder="повторите пароль">
 
-      <div id="err" class="error">Неверный логин или пароль.</div>
+      <button type="submit">Зарегистрироваться →</button>
+
+      <div id="err" class="error"></div>
     </form>
-    <div class="foot" id="reg-link" style="display:none">Нет аккаунта? <a href="/_auth/register">Зарегистрироваться</a></div>
-    <div class="foot">Powered by code-server · WebSocket-ready proxy</div>
+    <div class="foot">Уже есть аккаунт? <a href="/_auth/login">Войти</a></div>
   </div>
   <script>
-    const url = new URL(location.href);
-    if (url.searchParams.get('e')) document.getElementById('err').classList.add('show');
-    const next = url.searchParams.get('next');
-    if (next) document.querySelector('input[name=next]').value = next;
+    const form = document.getElementById('form');
+    const err  = document.getElementById('err');
 
-    // Показать ссылку на регистрацию, если она включена на сервере
-    fetch('/_auth/register', { method: 'HEAD' }).then(r => {
-      if (r.ok) document.getElementById('reg-link').style.display = '';
-    }).catch(() => {});
+    function showError(msg) {
+      err.textContent = msg;
+      err.classList.add('show');
+    }
 
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      err.classList.remove('show');
+
+      const username  = document.getElementById('u').value.trim();
+      const password  = document.getElementById('p').value;
+      const password2 = document.getElementById('p2').value;
+
+      if (password !== password2) {
+        return showError('Пароли не совпадают.');
+      }
+      if (password.length < 6) {
+        return showError('Пароль должен содержать не менее 6 символов.');
+      }
+
+      try {
+        const res = await fetch('/_auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          return showError(data.error || 'Ошибка регистрации.');
+        }
+        // Успех — редирект на главную (сессия уже установлена на сервере)
+        window.location.href = '/';
+      } catch (_) {
+        showError('Сетевая ошибка. Попробуйте ещё раз.');
+      }
+    });
   </script>
 </body>
 </html>
