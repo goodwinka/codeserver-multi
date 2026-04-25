@@ -16,6 +16,7 @@ const PORT = parseInt(process.env.PORT || '8080', 10);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'insecure-dev-secret-change-me';
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'cs_sid';
 const SESSIONS_DIR = process.env.SESSIONS_DIR || '/config/sessions';
+const ALLOW_REGISTRATION = process.env.ALLOW_REGISTRATION === 'true';
 
 // ----- Bootstrap admin if configured -----
 (async () => {
@@ -127,6 +128,41 @@ app.get('/_auth/logout', (req, res) => {
     res.redirect('/_auth/login');
   });
 });
+
+// ---- Registration (optional, enabled via ALLOW_REGISTRATION=true) ----
+app.get('/_auth/register', (req, res) => {
+  if (!ALLOW_REGISTRATION) return res.status(404).send('Registration is disabled');
+  if (req.session.user) return res.redirect('/');
+  res.sendFile(path.join(__dirname, 'public', 'register.html'));
+});
+
+app.post('/_auth/register',
+  bodyParser.json({ limit: '16kb' }),
+  async (req, res) => {
+    if (!ALLOW_REGISTRATION) return res.status(404).json({ error: 'Registration is disabled' });
+    if (req.session.user) return res.status(400).json({ error: 'Already logged in' });
+    try {
+      const { username = '', password = '' } = req.body || {};
+      const user = await users.add({
+        username: String(username).toLowerCase().trim(),
+        password: String(password),
+        isAdmin: false
+      });
+      req.session.regenerate(err => {
+        if (err) return res.status(500).json({ error: 'Session error' });
+        req.session.user = user;
+        req.session.save(() => {
+          instances.ensureRunning(user.username).catch(e =>
+            console.error(`[register] start instance failed for ${user.username}:`, e.message)
+          );
+          res.json({ ok: true });
+        });
+      });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  }
+);
 
 // ---- Account panel (переключение пользователя / смена пароля) ----
 app.get('/_auth/account', (req, res) => {
