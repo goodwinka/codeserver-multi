@@ -1,6 +1,18 @@
 {
-  "_comment": "Настройки Qwen Code CLI (~/.qwen-coder/settings.json), общие для всех пользователей. Копируются в /opt/shared-qwen-settings/ при запуске контейнера и подключаются симлинком к {userHome}/.qwen-coder/settings.json каждого пользователя.",
+  "_comment": "Настройки Qwen Code CLI (~/.qwen/settings.json), общие для всех пользователей. Копируются в /opt/shared-qwen-settings/ при запуске контейнера и подключаются симлинком к {userHome}/.qwen/settings.json каждого пользователя.",
 
-  "autoUpdates": false,
-  "telemetry.enabled": false
+  "general": {
+    "enableAutoUpdate": false
+  },
+
+  "model": {
+    "name": "Qwen3.5-9B-Q8_0"
+  },
+
+  "security": {
+    "auth": {
+      "apiKey": "",
+      "baseUrl": "http://0.0.0.0:11435"
+    }
+  }
 }

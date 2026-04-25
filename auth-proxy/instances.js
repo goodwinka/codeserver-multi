@@ -143,9 +143,9 @@ class InstanceManager {
       SHARED_CLAUDE_SETTINGS
     );
 
-    // Symlink shared Qwen Code CLI settings into ~/.qwen-coder/settings.json.
+    // Symlink shared Qwen Code CLI settings into ~/.qwen/settings.json.
     ensureSettingsSymlink(
-      path.join(userHome, '.qwen-coder'),
+      path.join(userHome, '.qwen'),
       'settings.json',
       SHARED_QWEN_SETTINGS
     );

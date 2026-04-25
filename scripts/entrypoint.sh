@@ -53,7 +53,7 @@ require('fs').writeFileSync('/opt/shared-claude-settings/settings.json', JSON.st
   echo "[entrypoint] shared Claude Code settings deployed to /opt/shared-claude-settings/settings.json"
 fi
 
-# Разворачиваем настройки Qwen Code CLI (~/.qwen-coder/settings.json).
+# Разворачиваем настройки Qwen Code CLI (~/.qwen/settings.json).
 if [ -f /config/qwen-settings.json ]; then
   node -e "
 const src = JSON.parse(require('fs').readFileSync('/config/qwen-settings.json', 'utf8'));

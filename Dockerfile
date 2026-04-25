@@ -75,7 +75,7 @@ RUN curl -fsSL \
 # /opt/shared-extensions        — shared extensions dir used by every user's code-server
 # /opt/shared-machine-settings  — shared VS Code machine settings (symlinked into each user's dataDir)
 # /opt/shared-claude-settings   — shared Claude Code CLI settings (symlinked into each user's ~/.claude/)
-# /opt/shared-qwen-settings     — shared Qwen Code CLI settings (symlinked into each user's ~/.qwen-coder/)
+# /opt/shared-qwen-settings     — shared Qwen Code CLI settings (symlinked into each user's ~/.qwen/)
 # /config                       — users.json + runtime config (bind-mounted from host)
 # /app                          — auth-proxy source
 RUN mkdir -p /users /opt/shared-extensions /opt/shared-machine-settings \
