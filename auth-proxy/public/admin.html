@@ -277,7 +277,7 @@
     async function userAction(u, act){
       try{
         if (act === 'pw'){
-          const pw = prompt(`Новый пароль для ${u.username} (≥ 6 символов):`);
+          const pw = prompt(`Новый пароль для ${u.username}:`);
           if (!pw) return;
           await api('POST', `/admin/users/${u.username}/password`, { password: pw });
           toast('Пароль обновлён');

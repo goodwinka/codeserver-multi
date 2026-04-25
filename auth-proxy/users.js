@@ -96,8 +96,8 @@ class UserStore {
     if (!USERNAME_RE.test(username)) {
       throw new Error('Username must be 3–32 chars, lowercase, start with a letter, [a-z0-9_-]');
     }
-    if (!password || password.length < 6) {
-      throw new Error('Password must be at least 6 characters');
+    if (!password) {
+      throw new Error('Password is required');
     }
     if (this.find(username)) {
       throw new Error('User already exists');
@@ -135,7 +135,7 @@ class UserStore {
   }
 
   async setPassword(username, password) {
-    if (!password || password.length < 6) throw new Error('Password must be at least 6 characters');
+    if (!password) throw new Error('Password is required');
     const user = this.find(username);
     if (!user) throw new Error('User not found');
     user.passwordHash = await bcrypt.hash(password, 10);

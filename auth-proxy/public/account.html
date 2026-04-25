@@ -143,7 +143,6 @@
       msg.className='msg';
       if (!cur || !n1) { msg.textContent='Заполните все поля.'; msg.classList.add('err'); return; }
       if (n1 !== n2) { msg.textContent='Пароли не совпадают.'; msg.classList.add('err'); return; }
-      if (n1.length < 6) { msg.textContent='Пароль должен быть ≥ 6 символов.'; msg.classList.add('err'); return; }
       const r = await fetch('/_auth/api/me/password', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({currentPassword:cur, newPassword:n1})
