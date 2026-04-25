@@ -8,15 +8,6 @@
   "claudeCode.disableLoginPrompt": true,
 
   "qwen-code.provider": "api-key",
-  "qwen-code.model": "Qwen3.5-9B-Q8_0",
-  "qwen-code.modelProviders": {
-    "local": {
-      "id": "local",
-      "name": "Local LLM",
-      "baseUrl": "http://192.168.1.200:11435",
-      "envKey": "QWEN_API_KEY"
-    }
-  },
 
   "workbench.colorTheme": "Visual Studio Dark"
 }
