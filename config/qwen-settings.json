@@ -5,14 +5,25 @@
     "enableAutoUpdate": false
   },
 
-  "model": {
-    "name": "Qwen3.5-9B-Q8_0"
+  "modelProviders": {
+    "openai": [
+      {
+        "id": "Qwen3.5-9B-Q8_0",
+        "name": "Local LLM",
+        "baseUrl": "http://192.168.1.200:11435/v1",
+        "envKey": "QWEN_API_KEY",
+        "description": "Local OpenAI-compatible API"
+      }
+    ]
   },
 
   "security": {
     "auth": {
-      "apiKey": "",
-      "baseUrl": "http://192.168.1.200:11435"
+      "selectedType": "openai"
     }
+  },
+
+  "model": {
+    "name": "Qwen3.5-9B-Q8_0"
   }
 }
