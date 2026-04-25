@@ -91,9 +91,31 @@ class InstanceManager {
 
     const userHome = path.join(USERS_ROOT, username);
     const dataDir = path.join(userHome, '.local/share/code-server');
+    const machineDir = path.join(dataDir, 'Machine');
     fs.mkdirSync(userHome, { recursive: true });
     fs.mkdirSync(dataDir, { recursive: true });
+    fs.mkdirSync(machineDir, { recursive: true });
     fs.mkdirSync(SHARED_EXT_DIR, { recursive: true });
+
+    // Symlink shared machine settings so all users inherit the same VS Code
+    // machine-level config (e.g. Claude Code / Qwen Code login disabled).
+    const machineSettingsLink = path.join(machineDir, 'settings.json');
+    const sharedMachineSettings = process.env.SHARED_MACHINE_SETTINGS ||
+      '/opt/shared-machine-settings/settings.json';
+    if (fs.existsSync(sharedMachineSettings)) {
+      try {
+        const stat = fs.lstatSync(machineSettingsLink);
+        // Replace only if it's not already a symlink pointing to the right target.
+        if (!stat.isSymbolicLink() || fs.readlinkSync(machineSettingsLink) !== sharedMachineSettings) {
+          fs.unlinkSync(machineSettingsLink);
+          fs.symlinkSync(sharedMachineSettings, machineSettingsLink);
+        }
+      } catch (e) {
+        if (e.code === 'ENOENT') {
+          fs.symlinkSync(sharedMachineSettings, machineSettingsLink);
+        }
+      }
+    }
 
     // Transfer ownership to the Linux user and restrict access from other accounts.
     const ugid = getLinuxUidGid(username);

@@ -67,13 +67,15 @@ RUN curl -fsSL \
               /usr/local/bin/kotlin-language-server
 
 # Directory layout
-# /users                  — user home directories (bind-mounted from host)
-# /opt/shared-extensions  — shared extensions dir used by every user's code-server
-# /config                 — users.json + runtime config (bind-mounted from host)
-# /app                    — auth-proxy source
-RUN mkdir -p /users /opt/shared-extensions /config /app \
+# /users                        — user home directories (bind-mounted from host)
+# /opt/shared-extensions        — shared extensions dir used by every user's code-server
+# /opt/shared-machine-settings  — shared VS Code machine settings (symlinked into each user's dataDir)
+# /config                       — users.json + runtime config (bind-mounted from host)
+# /app                          — auth-proxy source
+RUN mkdir -p /users /opt/shared-extensions /opt/shared-machine-settings /config /app \
     && chmod 711 /users \
-    && chmod 755 /opt/shared-extensions
+    && chmod 755 /opt/shared-extensions \
+    && chmod 755 /opt/shared-machine-settings
 
 WORKDIR /app
 
