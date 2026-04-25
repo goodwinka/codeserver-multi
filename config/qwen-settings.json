@@ -1,0 +1,6 @@
+{
+  "_comment": "Настройки Qwen Code CLI (~/.qwen-coder/settings.json), общие для всех пользователей. Копируются в /opt/shared-qwen-settings/ при запуске контейнера и подключаются симлинком к {userHome}/.qwen-coder/settings.json каждого пользователя.",
+
+  "autoUpdates": false,
+  "telemetry.enabled": false
+}

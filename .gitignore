@@ -1,6 +1,7 @@
 node_modules/
 auth-proxy/node_modules/
-users/
+users/*
+!users/.gitkeep
 config/sessions/
 config/users.json
 *.log

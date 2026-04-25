@@ -6,6 +6,23 @@ const path = require('path');
 const http = require('http');
 const net = require('net');
 
+// Creates dir and ensures dir/filename is a symlink pointing to target.
+// Skips silently if target file doesn't exist yet.
+function ensureSettingsSymlink(dir, filename, target) {
+  if (!fs.existsSync(target)) return;
+  fs.mkdirSync(dir, { recursive: true });
+  const link = path.join(dir, filename);
+  try {
+    const stat = fs.lstatSync(link);
+    if (!stat.isSymbolicLink() || fs.readlinkSync(link) !== target) {
+      fs.unlinkSync(link);
+      fs.symlinkSync(target, link);
+    }
+  } catch (e) {
+    if (e.code === 'ENOENT') fs.symlinkSync(target, link);
+  }
+}
+
 // Returns { uid, gid } for the given Linux username, or null if not found.
 function getLinuxUidGid(username) {
   try {
@@ -19,6 +36,8 @@ function getLinuxUidGid(username) {
 
 const USERS_ROOT = process.env.USERS_ROOT || '/users';
 const SHARED_EXT_DIR = process.env.SHARED_EXT_DIR || '/opt/shared-extensions';
+const SHARED_CLAUDE_SETTINGS = process.env.SHARED_CLAUDE_SETTINGS || '/opt/shared-claude-settings/settings.json';
+const SHARED_QWEN_SETTINGS = process.env.SHARED_QWEN_SETTINGS || '/opt/shared-qwen-settings/settings.json';
 const PORT_MIN = 8100;
 const PORT_MAX = 8999;
 const READY_TIMEOUT_MS = 30_000;
@@ -116,6 +135,20 @@ class InstanceManager {
         }
       }
     }
+
+    // Symlink shared Claude Code CLI settings into ~/.claude/settings.json.
+    ensureSettingsSymlink(
+      path.join(userHome, '.claude'),
+      'settings.json',
+      SHARED_CLAUDE_SETTINGS
+    );
+
+    // Symlink shared Qwen Code CLI settings into ~/.qwen-coder/settings.json.
+    ensureSettingsSymlink(
+      path.join(userHome, '.qwen-coder'),
+      'settings.json',
+      SHARED_QWEN_SETTINGS
+    );
 
     // Transfer ownership to the Linux user and restrict access from other accounts.
     const ugid = getLinuxUidGid(username);
