@@ -1,8 +1,50 @@
 {
-  "_comment": "Настройки Claude Code CLI (~/.claude/settings.json), общие для всех пользователей. Копируются в /opt/shared-claude-settings/ при запуске контейнера и подключаются симлинком к {userHome}/.claude/settings.json каждого пользователя.",
-
-  "$schema": "https://json.schemastore.org/claude-code-settings.json",
-
-  "autoUpdates": false,
-  "telemetry.enabled": false
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "153840",
+    "OTEL_METRICS_EXPORTER": "otlp",
+    "ANTHROPIC_BASE_URL": "http://192.168.1.200:11435/",
+    "ANTHROPIC_API_KEY": "sk-no-key-required",
+    "DISABLE_TELEMETRY": "1",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "Qwen3.5-27B-UD-IQ3_XXS_t3",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "Qwen3.5-27B-UD-IQ3_XXS_t3",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "Qwen3.5-27B-UD-IQ3_XXS_t3"
+  },
+  "permissions": {
+    "allow": [],
+    "deny": []
+  },
+  "model": "Qwen3.5-27B-UD-IQ3_XXS_t3",
+  "enabledPlugins": {
+    "pyright-lsp@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "clangd-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "kotlin-lsp@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": false,
+    "gitlab@claude-plugins-official": false
+  },
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    }
+  },
+  "enableAllProjectMcpServers": true,
+  "mcpServers": {
+    "intellisense": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/opt/lsp-mcp-server/dist/index.js",
+        "--project",
+        "."
+      ]
+    }
+  }
 }
