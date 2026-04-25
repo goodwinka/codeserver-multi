@@ -6,6 +6,10 @@ set -eu
 FILE="${1:-/config/extensions.json}"
 EXT_DIR="${SHARED_EXT_DIR:-/opt/shared-extensions}"
 
+# Use VS Code Marketplace — both anthropic.claude-code and qwenlm.qwen-code-vscode-ide-companion
+# are not published on Open VSX (code-server's default registry).
+export EXTENSIONS_GALLERY='{"serviceUrl":"https://marketplace.visualstudio.com/_apis/public/gallery","cacheUrl":"https://vscode.blob.core.windows.net/gallery/index","itemUrl":"https://marketplace.visualstudio.com/items"}'
+
 if [ ! -f "$FILE" ]; then
   echo "[install-extensions] no file $FILE, nothing to do"
   exit 0
