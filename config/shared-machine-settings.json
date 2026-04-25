@@ -8,8 +8,11 @@
   "claude.loginRequired": false,
   "claude.auth.loginOnStartup": false,
   "claude.telemetry.enabled": false,
+  "claudeCode.disableLoginPrompt": true,
 
   "qwen-coder.loginRequired": false,
   "qwen-coder.auth.loginOnStartup": false,
-  "qwen-coder.telemetry.enabled": false
+  "qwen-coder.telemetry.enabled": false,
+
+  "workbench.colorTheme": "Visual Studio Dark"
 }
