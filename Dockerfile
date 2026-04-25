@@ -60,6 +60,25 @@ RUN npm install -g --no-fund --no-audit \
         @anthropic-ai/claude-code \
         qwen-code
 
+# tiktoken_bg.wasm must sit next to the qwen-code bundle at runtime.
+# esbuild can inline JS but not WASM, so npm install leaves the file in the
+# tiktoken package directory — copy it to bundle/ where gemini.js expects it.
+RUN BUNDLE_DIR=$(find /usr/local/lib/node_modules/qwen-code \
+                      /usr/lib/node_modules/qwen-code \
+                 -name "gemini.js" -path "*/bundle/*" 2>/dev/null | head -1 | xargs -r dirname) \
+ && WASM=$(find /usr/local/lib/node_modules/qwen-code \
+                /usr/lib/node_modules/qwen-code \
+                /usr/local/lib/node_modules/tiktoken \
+                /usr/lib/node_modules/tiktoken \
+           -name "tiktoken_bg.wasm" 2>/dev/null | head -1) \
+ && if [ -z "$WASM" ]; then \
+      npm install -g --no-fund --no-audit tiktoken; \
+      WASM=$(find /usr/local/lib/node_modules/tiktoken /usr/lib/node_modules/tiktoken \
+             -name "tiktoken_bg.wasm" 2>/dev/null | head -1); \
+    fi \
+ && echo "Copying $WASM -> $BUNDLE_DIR/" \
+ && cp "$WASM" "$BUNDLE_DIR/"
+
 # Kotlin language server — download prebuilt release from GitHub
 ARG KOTLIN_LS_VERSION=1.3.13
 RUN curl -fsSL \
