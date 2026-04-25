@@ -29,7 +29,8 @@ RUN curl -fsSL https://code-server.dev/install.sh | sh
 # /config                 — users.json + runtime config (bind-mounted from host)
 # /app                    — auth-proxy source
 RUN mkdir -p /users /opt/shared-extensions /config /app \
-    && chmod 755 /users /opt/shared-extensions
+    && chmod 711 /users \
+    && chmod 755 /opt/shared-extensions
 
 WORKDIR /app
 

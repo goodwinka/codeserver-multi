@@ -10,6 +10,10 @@ if [ ! -f /config/extensions.json ] && [ -f /config.default/extensions.json ]; t
 fi
 
 mkdir -p /config/sessions /opt/shared-extensions /users
+# Prevent users from listing each other's home directories.
+# Individual home dirs get chmod 700 when they are created or first accessed.
+chmod 711 /users
+chmod 755 /opt/shared-extensions
 
 # Если в /config/extensions.json есть список и общий каталог расширений ещё пуст —
 # установим их (удобно для первичного bootstrap).
