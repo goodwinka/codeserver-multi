@@ -11,7 +11,6 @@ const httpProxy = require('http-proxy');
 const users = require('./users');
 const instances = require('./instances');
 const adminApi = require('./admin-api');
-const { setupDownloadFix } = require('./download-fix');
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'insecure-dev-secret-change-me';
@@ -60,7 +59,6 @@ const proxy = httpProxy.createProxyServer({
   xfwd: true,
   changeOrigin: false
 });
-setupDownloadFix(proxy);
 proxy.on('error', (err, req, res) => {
   console.error('[proxy]', err.message);
   if (res && typeof res.writeHead === 'function' && !res.headersSent) {
