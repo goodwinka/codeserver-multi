@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>code-server</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: #0b0d10; }
+    body { display: flex; flex-direction: column; }
+
+    #cs-frame {
+      flex: 1;
+      border: none;
+      width: 100%;
+      min-height: 0;
+      display: block;
+    }
+
+    #cs-panel {
+      height: 36px;
+      flex-shrink: 0;
+      background: #0d1117;
+      border-top: 1px solid #1e2530;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 4px;
+      font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+      font-size: 12px;
+      user-select: none;
+      z-index: 1;
+    }
+
+    .cs-sep {
+      width: 1px;
+      height: 16px;
+      background: #1e2530;
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    .cs-user {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 8px;
+      color: #5a6169;
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 11px;
+    }
+    .cs-user::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #5cdbd3;
+      box-shadow: 0 0 8px rgba(92, 219, 211, 0.6);
+      flex-shrink: 0;
+    }
+
+    .cs-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      color: #8a9199;
+      text-decoration: none;
+      font-size: 12px;
+      font-family: inherit;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .cs-btn:hover {
+      color: #5cdbd3;
+      border-color: rgba(92, 219, 211, 0.35);
+      background: rgba(92, 219, 211, 0.06);
+    }
+    .cs-btn.logout {
+      margin-left: auto;
+    }
+    .cs-btn.logout:hover {
+      color: #ef6461;
+      border-color: rgba(239, 100, 97, 0.35);
+      background: rgba(239, 100, 97, 0.06);
+    }
+
+    #cs-admin-btn { display: none; }
+  </style>
+</head>
+<body>
+  <iframe
+    id="cs-frame"
+    src="/?__cs=1"
+    allow="clipboard-read; clipboard-write"
+    title="code-server"
+  ></iframe>
+
+  <div id="cs-panel">
+    <span class="cs-user" id="cs-username"></span>
+    <span class="cs-sep"></span>
+    <a href="/_auth/account" class="cs-btn" title="Настройки пользователя">
+      ⚙&nbsp;Настройки
+    </a>
+    <a href="/_auth/admin" id="cs-admin-btn" class="cs-btn" title="Панель администратора">
+      ⊞&nbsp;Админ
+    </a>
+    <a href="/_auth/logout" class="cs-btn logout" title="Выйти из аккаунта">
+      ⏻&nbsp;Выход
+    </a>
+  </div>
+
+  <script>
+    fetch('/_auth/api/me')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(me => {
+        if (me.username) document.getElementById('cs-username').textContent = me.username;
+        if (me.isAdmin) document.getElementById('cs-admin-btn').style.display = 'inline-flex';
+      })
+      .catch(() => { location.href = '/_auth/login'; });
+  </script>
+</body>
+</html>

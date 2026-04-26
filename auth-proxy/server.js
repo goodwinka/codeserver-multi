@@ -180,6 +180,14 @@ app.get('/_auth/admin', (req, res) => {
 // ---- API ----
 app.use('/_auth/api', adminApi);
 
+// ---- Root: serve iframe wrapper (panel below code-server, no overlap) ----
+// GET / without ?__cs=1 → wrapper page; with ?__cs=1 → fall through to proxy
+app.get('/', (req, res, next) => {
+  if (!req.session.user) return res.redirect('/_auth/login?next=' + encodeURIComponent('/'));
+  if (req.query.__cs === '1') return next();
+  res.sendFile(path.join(__dirname, 'public', 'frame.html'));
+});
+
 // ---- Everything else: proxy to the user's code-server ----
 app.use(async (req, res) => {
   if (!req.session.user) {
