@@ -177,6 +177,7 @@ class InstanceManager {
         HOME: userHome,
         USER: username,
         LOGNAME: username,
+        SHELL: '/bin/bash',
         // Отключаем встроенный прокси code-server к marketplace — админ сам ставит расширения
       },
       stdio: ['ignore', 'pipe', 'pipe']
