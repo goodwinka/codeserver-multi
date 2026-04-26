@@ -16,29 +16,39 @@ function parseFilename(cd) {
   return m ? decodeURIComponent(m[1].trim()) : '';
 }
 
+// Detect archive type from Content-Disposition or Content-Type.
 function detectArchiveType(proxyRes) {
   const cd = proxyRes.headers['content-disposition'] || '';
-  if (!cd.toLowerCase().includes('attachment')) return null;
-  const f = parseFilename(cd);
-  if (f.endsWith('.tar.gz') || f.endsWith('.tgz')) return 'tar.gz';
-  if (f.endsWith('.tar')) return 'tar';
-  if (f.endsWith('.zip')) return 'zip';
+  const ct = proxyRes.headers['content-type'] || '';
+
+  if (cd.toLowerCase().includes('attachment')) {
+    const f = parseFilename(cd);
+    if (f.endsWith('.tar.gz') || f.endsWith('.tgz')) return 'tar.gz';
+    if (f.endsWith('.tar'))                           return 'tar';
+    if (f.endsWith('.zip'))                           return 'zip';
+  }
+
+  // Fallback: Content-Type alone (no filename in disposition)
+  if (/application\/(zip|x-zip(-compressed)?)/.test(ct))        return 'zip';
+  if (/application\/(x-tar|x-gtar)/.test(ct))                   return 'tar';
+  if (/application\/(gzip|x-gzip)/.test(ct) && cd.includes('attachment')) return 'tar.gz';
+
   return null;
 }
 
-// Strip leading slashes/backslashes to turn absolute archive paths into relative ones.
+// Strip leading slashes/backslashes → relative paths.
 function fixEntryPath(p) {
   return p.replace(/^[/\\]+/, '');
 }
+
+// ── Server-side interceptors ────────────────────────────────────────────────
 
 function interceptTar(proxyRes, res, isGzip) {
   const tar = getTar();
   if (!tar) return false;
 
-  // Remove content-length — repacked archive size differs
   delete proxyRes.headers['content-length'];
 
-  // Override pipe so we can intercept when http-proxy calls proxyRes.pipe(res)
   const _origPipe = proxyRes.pipe.bind(proxyRes);
   proxyRes.pipe = function (dest, opts) {
     if (dest !== res) return _origPipe(dest, opts);
@@ -90,7 +100,6 @@ function interceptZip(proxyRes, res) {
   proxyRes.pipe = function (dest, opts) {
     if (dest !== res) return _origPipe(dest, opts);
 
-    // Buffer the whole zip, repack with relative paths, send
     const chunks = [];
     proxyRes.on('data', (chunk) => chunks.push(chunk));
     proxyRes.on('error', (err) => {
@@ -116,9 +125,7 @@ function interceptZip(proxyRes, res) {
             try { res.destroy(); } catch (_) {}
             return;
           }
-          try {
-            res.setHeader('content-length', zipped.length);
-          } catch (_) {}
+          try { res.setHeader('content-length', zipped.length); } catch (_) {}
           res.end(Buffer.from(zipped));
         });
       });
@@ -130,13 +137,81 @@ function interceptZip(proxyRes, res) {
   return true;
 }
 
-/**
- * Attach to an http-proxy instance to intercept tar/zip folder downloads
- * and rewrite archive entry paths to be relative (strip leading '/').
- * Fixes the "contains system files" error shown by browsers / Windows when
- * code-server serves archives with absolute entry paths.
- */
+// ── Client-side HTML injection ──────────────────────────────────────────────
+//
+// VS Code creates ZIP archives entirely in the browser (Blob URL), so the
+// proxy never sees the final archive. We inject fflate + download-client-fix.js
+// into every HTML page served by code-server. The client script patches
+// <a>.click() for blob: ZIP downloads and repacks with relative paths.
+
+function injectScripts(html, nonce) {
+  const na  = nonce ? ` nonce="${nonce}"` : '';
+  const tag =
+    `<script${na} src="/_auth/static/fflate.js"></script>` +
+    `<script${na} src="/_auth/static/download-client-fix.js"></script>`;
+  if (html.includes('</body>')) return html.replace('</body>', tag + '\n</body>');
+  if (html.includes('</html>')) return html.replace('</html>', tag + '\n</html>');
+  return html + '\n' + tag;
+}
+
+function setupHtmlInjection(proxy) {
+  proxy.on('proxyRes', (proxyRes, req, res) => {
+    const ct = proxyRes.headers['content-type'] || '';
+    if (!ct.includes('text/html'))   return;
+    if (proxyRes.statusCode !== 200) return;
+
+    const enc = (proxyRes.headers['content-encoding'] || '').toLowerCase();
+
+    // We'll send uncompressed — remove encoding header so client doesn't try to decompress
+    delete proxyRes.headers['content-encoding'];
+    delete proxyRes.headers['content-length'];
+
+    const _origPipe = proxyRes.pipe.bind(proxyRes);
+    proxyRes.pipe = function (dest, opts) {
+      if (dest !== res) return _origPipe(dest, opts);
+
+      const chunks = [];
+
+      function finish() {
+        const raw  = Buffer.concat(chunks).toString('utf8');
+        // Extract nonce from the first script tag that has one (VS Code CSP)
+        const nm   = raw.match(/\bnonce="([^"]+)"/);
+        const html = injectScripts(raw, nm ? nm[1] : '');
+        res.end(html);
+      }
+
+      function onErr(label, err) {
+        console.error(`[download-fix] html-inject ${label}:`, err.message);
+        try { res.destroy(); } catch (_) {}
+      }
+
+      if (enc === 'gzip' || enc === 'x-gzip') {
+        const gz = zlib.createGunzip();
+        gz.on('data', c => chunks.push(c));
+        gz.on('end',  finish);
+        gz.on('error', e => onErr('gunzip', e));
+        _origPipe(gz);
+      } else if (enc === 'br') {
+        const br = zlib.createBrotliDecompress();
+        br.on('data', c => chunks.push(c));
+        br.on('end',  finish);
+        br.on('error', e => onErr('brotli', e));
+        _origPipe(br);
+      } else {
+        proxyRes.on('data',  c => chunks.push(c));
+        proxyRes.on('end',   finish);
+        proxyRes.on('error', e => onErr('stream', e));
+      }
+
+      return dest;
+    };
+  });
+}
+
+// ── Public API ──────────────────────────────────────────────────────────────
+
 function setupDownloadFix(proxy) {
+  // 1. Server-side: repack tar/zip archives that come through as HTTP responses
   proxy.on('proxyRes', (proxyRes, req, res) => {
     const type = detectArchiveType(proxyRes);
     if (!type) return;
@@ -152,6 +227,9 @@ function setupDownloadFix(proxy) {
       console.log(`[download-fix] rewriting paths in ${type} download: ${filename}`);
     }
   });
+
+  // 2. Client-side: inject fflate + fix script into every HTML page
+  setupHtmlInjection(proxy);
 }
 
 module.exports = { setupDownloadFix };
