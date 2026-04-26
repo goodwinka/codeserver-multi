@@ -19,6 +19,8 @@ services:
       # Администратор создаётся при первом старте, если его ещё нет в users.json
       BOOTSTRAP_ADMIN_USER: "admin123"
       BOOTSTRAP_ADMIN_PASSWORD: "admin123"
+      # Разрешить самостоятельную регистрацию пользователей
+      ALLOW_REGISTRATION: "true"
       # Имя cookie с сессией
       SESSION_COOKIE_NAME: "cs_sid"
       # API-ключ для Qwen Code (локальный LLM не требует настоящего ключа)
