@@ -170,6 +170,7 @@ class UserStore {
     await this.add({ username, password, isAdmin: true });
     console.log(`[users] bootstrap admin "${username}" created`);
   }
+
 }
 
 module.exports = new UserStore();

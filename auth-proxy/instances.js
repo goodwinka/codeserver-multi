@@ -5,7 +5,6 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const net = require('net');
-
 // Creates dir and ensures dir/filename is a symlink pointing to target.
 // Skips silently if target file doesn't exist yet.
 function ensureSettingsSymlink(dir, filename, target) {
@@ -20,6 +19,23 @@ function ensureSettingsSymlink(dir, filename, target) {
     }
   } catch (e) {
     if (e.code === 'ENOENT') fs.symlinkSync(target, link);
+  }
+}
+
+// Creates a system user with /bin/bash shell if it doesn't exist; fixes nologin shell if it does.
+// Existing sessions bypass verify(), so the Linux user may be absent after a container restart.
+function ensureLinuxUser(username) {
+  try {
+    execSync(`id -u ${username}`, { stdio: 'ignore' });
+    const shell = execSync(`getent passwd ${username}`, { encoding: 'utf8' }).trim().split(':')[6];
+    if (shell === '/usr/sbin/nologin' || shell === '/bin/false' || !shell) {
+      execSync(`usermod --shell /bin/bash ${username}`, { stdio: 'ignore' });
+    }
+  } catch (_) {
+    execSync(
+      `useradd --no-create-home --shell /bin/bash --home-dir /users/${username} ${username}`,
+      { stdio: 'ignore' }
+    );
   }
 }
 
@@ -161,6 +177,11 @@ class InstanceManager {
       'settings.json',
       SHARED_QWEN_SETTINGS
     );
+
+    // Existing sessions bypass verify(), so the Linux user may not exist in /etc/passwd after a container restart.
+    try { ensureLinuxUser(username); } catch (e) {
+      console.warn(`[instances] ensureLinuxUser failed for ${username}:`, e.message);
+    }
 
     // Transfer ownership to the Linux user and restrict access from other accounts.
     const ugid = getLinuxUidGid(username);
