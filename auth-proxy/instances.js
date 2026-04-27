@@ -38,6 +38,7 @@ const USERS_ROOT = process.env.USERS_ROOT || '/users';
 const SHARED_EXT_DIR = process.env.SHARED_EXT_DIR || '/opt/shared-extensions';
 const SHARED_CLAUDE_SETTINGS = process.env.SHARED_CLAUDE_SETTINGS || '/opt/shared-claude-settings/settings.json';
 const SHARED_QWEN_SETTINGS = process.env.SHARED_QWEN_SETTINGS || '/opt/shared-qwen-settings/settings.json';
+const SHARED_USER_SETTINGS = process.env.SHARED_USER_SETTINGS || '/opt/shared-user-settings/settings.json';
 const PORT_MIN = 8100;
 const PORT_MAX = 8999;
 const READY_TIMEOUT_MS = 30_000;
@@ -115,6 +116,17 @@ class InstanceManager {
     fs.mkdirSync(dataDir, { recursive: true });
     fs.mkdirSync(machineDir, { recursive: true });
     fs.mkdirSync(SHARED_EXT_DIR, { recursive: true });
+
+    // Seed User/settings.json for first-time users.
+    // Some extension settings (e.g. claudeCode.disableLoginPrompt) have "window"
+    // scope, meaning VS Code reads them from User/settings.json, not Machine/settings.json.
+    // We copy — not symlink — so users can later override their own settings freely.
+    const userSettingsDir = path.join(dataDir, 'User');
+    const userSettingsFile = path.join(userSettingsDir, 'settings.json');
+    fs.mkdirSync(userSettingsDir, { recursive: true });
+    if (!fs.existsSync(userSettingsFile) && fs.existsSync(SHARED_USER_SETTINGS)) {
+      fs.copyFileSync(SHARED_USER_SETTINGS, userSettingsFile);
+    }
 
     // Symlink shared machine settings so all users inherit the same VS Code
     // machine-level config (e.g. Claude Code / Qwen Code login disabled).

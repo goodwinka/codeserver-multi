@@ -188,10 +188,11 @@ app.get('/_auth/admin', (req, res) => {
 app.use('/_auth/api', adminApi);
 
 // ---- Root: serve iframe wrapper (panel below code-server, no overlap) ----
-// GET / without ?__cs=1 → wrapper page; with ?__cs=1 → fall through to proxy
+// GET / with no query params → wrapper page; any query params (e.g. ?folder=, ?workspace=)
+// means code-server is navigating internally — pass straight through to the proxy.
 app.get('/', (req, res, next) => {
   if (!req.session.user) return res.redirect('/_auth/login?next=' + encodeURIComponent('/'));
-  if (req.query.__cs === '1') return next();
+  if (Object.keys(req.query).length > 0) return next();
   res.sendFile(path.join(__dirname, 'public', 'frame.html'));
 });
 

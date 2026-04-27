@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # Base tools + runtimes commonly used inside code-server
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl ca-certificates gnupg lsb-release \
-        git openssh-client sudo less vim-tiny \
+        git openssh-client sudo less vim-tiny tmux \
         build-essential libncurses5-dev python3 python3-pip python3-venv \
         locales tzdata \
     && sed -i 's/# en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen \
@@ -98,12 +98,14 @@ RUN curl -fsSL \
 # /config                       — users.json + runtime config (bind-mounted from host)
 # /app                          — auth-proxy source
 RUN mkdir -p /users /opt/shared-extensions /opt/shared-machine-settings \
-              /opt/shared-claude-settings /opt/shared-qwen-settings /config /app \
-    && chmod 711 /users \
+              /opt/shared-claude-settings /opt/shared-qwen-settings \
+              /opt/shared-user-settings /config /app \
+    && chmod 755 /users \
     && chmod 755 /opt/shared-extensions \
     && chmod 755 /opt/shared-machine-settings \
     && chmod 755 /opt/shared-claude-settings \
-    && chmod 755 /opt/shared-qwen-settings
+    && chmod 755 /opt/shared-qwen-settings \
+    && chmod 755 /opt/shared-user-settings
 
 WORKDIR /app
 
