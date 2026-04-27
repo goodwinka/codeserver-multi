@@ -171,10 +171,6 @@ class UserStore {
     console.log(`[users] bootstrap admin "${username}" created`);
   }
 
-  // Called by instances.js — verify() may be skipped for users with existing sessions after a container restart.
-  ensureLinuxUser(username) {
-    ensureLinuxUser(username);
-  }
 }
 
 module.exports = new UserStore();
