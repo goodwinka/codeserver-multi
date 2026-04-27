@@ -1,0 +1,6 @@
+{
+  "_comment": "Дефолтные пользовательские настройки VS Code для новых пользователей. При первом запуске code-server копируются в {userDataDir}/User/settings.json. Существующие пользователи не затрагиваются — их settings.json уже есть.",
+
+  "claudeCode.disableLoginPrompt": true,
+  "qwen-code.provider": "api-key"
+}

@@ -98,12 +98,14 @@ RUN curl -fsSL \
 # /config                       — users.json + runtime config (bind-mounted from host)
 # /app                          — auth-proxy source
 RUN mkdir -p /users /opt/shared-extensions /opt/shared-machine-settings \
-              /opt/shared-claude-settings /opt/shared-qwen-settings /config /app \
+              /opt/shared-claude-settings /opt/shared-qwen-settings \
+              /opt/shared-user-settings /config /app \
     && chmod 755 /users \
     && chmod 755 /opt/shared-extensions \
     && chmod 755 /opt/shared-machine-settings \
     && chmod 755 /opt/shared-claude-settings \
-    && chmod 755 /opt/shared-qwen-settings
+    && chmod 755 /opt/shared-qwen-settings \
+    && chmod 755 /opt/shared-user-settings
 
 WORKDIR /app
 

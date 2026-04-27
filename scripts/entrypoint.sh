@@ -17,9 +17,13 @@ fi
 if [ ! -f /config/qwen-settings.json ] && [ -f /config.default/qwen-settings.json ]; then
   cp /config.default/qwen-settings.json /config/qwen-settings.json
 fi
+if [ ! -f /config/shared-user-settings.json ] && [ -f /config.default/shared-user-settings.json ]; then
+  cp /config.default/shared-user-settings.json /config/shared-user-settings.json
+fi
 
 mkdir -p /config/sessions /opt/shared-extensions /opt/shared-machine-settings \
-         /opt/shared-claude-settings /opt/shared-qwen-settings /users
+         /opt/shared-claude-settings /opt/shared-qwen-settings \
+         /opt/shared-user-settings /users
 # Allow users to list /users so the file browser can reach their home dir.
 # Individual home dirs are protected by chmod 700 (only the owner can enter).
 chmod 755 /users
@@ -27,6 +31,7 @@ chmod 755 /opt/shared-extensions
 chmod 755 /opt/shared-machine-settings
 chmod 755 /opt/shared-claude-settings
 chmod 755 /opt/shared-qwen-settings
+chmod 755 /opt/shared-user-settings
 
 # Синхронизируем машинные настройки VS Code из /config в /opt/shared-machine-settings/.
 # Файл /opt/shared-machine-settings/settings.json — общий для всех пользователей;
@@ -51,6 +56,18 @@ delete src['_comment'];
 require('fs').writeFileSync('/opt/shared-claude-settings/settings.json', JSON.stringify(src, null, 2));
 "
   echo "[entrypoint] shared Claude Code settings deployed to /opt/shared-claude-settings/settings.json"
+fi
+
+# Разворачиваем дефолтные пользовательские настройки VS Code для новых пользователей.
+# instances.js копирует этот файл в {userDataDir}/User/settings.json при первом старте.
+# Перезаписываем при каждом запуске контейнера, чтобы изменения в /config вступали в силу.
+if [ -f /config/shared-user-settings.json ]; then
+  node -e "
+const src = JSON.parse(require('fs').readFileSync('/config/shared-user-settings.json', 'utf8'));
+delete src['_comment'];
+require('fs').writeFileSync('/opt/shared-user-settings/settings.json', JSON.stringify(src, null, 2));
+"
+  echo "[entrypoint] shared user settings deployed to /opt/shared-user-settings/settings.json"
 fi
 
 # Разворачиваем настройки Qwen Code CLI (~/.qwen/settings.json).
