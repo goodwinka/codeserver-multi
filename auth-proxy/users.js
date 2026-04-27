@@ -14,13 +14,20 @@ function ensureDir(p) {
   fs.mkdirSync(p, { recursive: true });
 }
 
-// Creates a no-login system user if one does not already exist.
+// Creates a system user with a login shell if one does not already exist.
+// If the user already exists but has a non-login shell (e.g. nologin from a
+// previous deployment), the shell is updated so the VS Code terminal works.
 function ensureLinuxUser(username) {
   try {
     execSync(`id -u ${username}`, { stdio: 'ignore' });
+    // User exists — make sure the shell allows login (fix pre-existing nologin users).
+    const shell = execSync(`getent passwd ${username}`, { encoding: 'utf8' }).trim().split(':')[6];
+    if (shell === '/usr/sbin/nologin' || shell === '/bin/false' || !shell) {
+      execSync(`usermod --shell /bin/bash ${username}`, { stdio: 'ignore' });
+    }
   } catch (_) {
     execSync(
-      `useradd --no-create-home --shell /usr/sbin/nologin --home-dir /users/${username} ${username}`,
+      `useradd --no-create-home --shell /bin/bash --home-dir /users/${username} ${username}`,
       { stdio: 'ignore' }
     );
   }
@@ -73,7 +80,7 @@ class UserStore {
     } catch (_) { /* ignore */ }
     // Give the Linux user full ownership; block access from every other account.
     try {
-      execSync(`chown -R ${username}:${username} ${home}`);
+      execSync(`chown -Rh ${username}:${username} ${home}`);
       execSync(`chmod 700 ${home}`);
     } catch (_) { /* ignore — may fail outside a real Linux container */ }
     return home;

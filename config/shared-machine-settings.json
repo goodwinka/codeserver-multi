@@ -9,5 +9,7 @@
 
   "qwen-code.provider": "api-key",
 
-  "workbench.colorTheme": "Visual Studio Dark"
+  "workbench.colorTheme": "Visual Studio Dark",
+
+  "workbench.startupEditor": "none"
 }
