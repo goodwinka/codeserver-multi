@@ -11,5 +11,18 @@
 
   "workbench.colorTheme": "Visual Studio Dark",
 
-  "workbench.startupEditor": "none"
+  "workbench.startupEditor": "none",
+
+  "terminal.integrated.defaultProfile.linux": "tmux",
+  "terminal.integrated.profiles.linux": {
+    "tmux": {
+      "path": "/usr/bin/tmux",
+      "args": ["new-session", "-A", "-s", "main"],
+      "icon": "terminal"
+    },
+    "bash": {
+      "path": "/bin/bash",
+      "icon": "terminal-bash"
+    }
+  }
 }
