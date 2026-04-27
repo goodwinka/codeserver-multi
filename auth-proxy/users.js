@@ -170,6 +170,14 @@ class UserStore {
     await this.add({ username, password, isAdmin: true });
     console.log(`[users] bootstrap admin "${username}" created`);
   }
+
+  // Public wrapper — called by instances.js to ensure the Linux system user exists
+  // when code-server starts for a user who has an existing browser session (i.e. verify()
+  // was never called in this container lifetime, so the Linux user may be missing from
+  // /etc/passwd after a container restart).
+  ensureLinuxUser(username) {
+    ensureLinuxUser(username);
+  }
 }
 
 module.exports = new UserStore();

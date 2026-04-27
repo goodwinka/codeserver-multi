@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const net = require('net');
+const users = require('./users');
 
 // Creates dir and ensures dir/filename is a symlink pointing to target.
 // Skips silently if target file doesn't exist yet.
@@ -161,6 +162,14 @@ class InstanceManager {
       'settings.json',
       SHARED_QWEN_SETTINGS
     );
+
+    // Ensure the Linux system user exists. Required when code-server starts for a user
+    // who has an existing browser session after a container restart: verify() is not
+    // called in that path, so /etc/passwd may not yet have this user, causing
+    // getLinuxUidGid() to return null and code-server to run as root.
+    try { users.ensureLinuxUser(username); } catch (e) {
+      console.warn(`[instances] ensureLinuxUser failed for ${username}:`, e.message);
+    }
 
     // Transfer ownership to the Linux user and restrict access from other accounts.
     const ugid = getLinuxUidGid(username);
