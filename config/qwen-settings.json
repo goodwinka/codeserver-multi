@@ -26,7 +26,7 @@
   "model": {
     "name": "Qwen3.5-9B-Q8_0",
     "generationConfig": {
-      "contextWindowSize": 32768
+      "contextWindowSize": 131072
     }
   }
 }
