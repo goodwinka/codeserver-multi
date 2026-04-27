@@ -154,7 +154,7 @@ class InstanceManager {
     const ugid = getLinuxUidGid(username);
     if (ugid) {
       try {
-        execSync(`chown -R ${username}:${username} ${userHome}`);
+        execSync(`chown -Rh ${username}:${username} ${userHome}`);
         execSync(`chmod 700 ${userHome}`);
       } catch (_) { /* ignore — may fail outside a real Linux container */ }
     }

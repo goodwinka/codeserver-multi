@@ -80,7 +80,7 @@ class UserStore {
     } catch (_) { /* ignore */ }
     // Give the Linux user full ownership; block access from every other account.
     try {
-      execSync(`chown -R ${username}:${username} ${home}`);
+      execSync(`chown -Rh ${username}:${username} ${home}`);
       execSync(`chmod 700 ${home}`);
     } catch (_) { /* ignore — may fail outside a real Linux container */ }
     return home;

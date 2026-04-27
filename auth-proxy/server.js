@@ -12,6 +12,13 @@ const users = require('./users');
 const instances = require('./instances');
 const adminApi = require('./admin-api');
 
+// Returns true if the session user still exists and is not disabled.
+function isSessionUserActive(sessionUser) {
+  if (!sessionUser) return false;
+  const dbUser = users.find(sessionUser.username);
+  return !!(dbUser && !dbUser.disabled);
+}
+
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'insecure-dev-secret-change-me';
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'cs_sid';
@@ -194,6 +201,11 @@ app.use(async (req, res) => {
     const next = encodeURIComponent(req.originalUrl || '/');
     return res.redirect(`/_auth/login?next=${next}`);
   }
+  // Reject if the user was deleted or disabled after the session was created.
+  if (!isSessionUserActive(req.session.user)) {
+    req.session.destroy(() => {});
+    return res.redirect('/_auth/login');
+  }
   try {
     const inst = await instances.ensureRunning(req.session.user.username);
     instances.touch(req.session.user.username);
@@ -214,7 +226,7 @@ server.on('upgrade', (req, socket, head) => {
   };
   sessionMiddleware(req, fakeRes, async () => {
     const user = req.session?.user;
-    if (!user) { socket.destroy(); return; }
+    if (!user || !isSessionUserActive(user)) { socket.destroy(); return; }
     try {
       const inst = await instances.ensureRunning(user.username);
       instances.touch(user.username);
