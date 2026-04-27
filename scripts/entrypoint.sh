@@ -20,9 +20,9 @@ fi
 
 mkdir -p /config/sessions /opt/shared-extensions /opt/shared-machine-settings \
          /opt/shared-claude-settings /opt/shared-qwen-settings /users
-# Prevent users from listing each other's home directories.
-# Individual home dirs get chmod 700 when they are created or first accessed.
-chmod 711 /users
+# Allow users to list /users so the file browser can reach their home dir.
+# Individual home dirs are protected by chmod 700 (only the owner can enter).
+chmod 755 /users
 chmod 755 /opt/shared-extensions
 chmod 755 /opt/shared-machine-settings
 chmod 755 /opt/shared-claude-settings

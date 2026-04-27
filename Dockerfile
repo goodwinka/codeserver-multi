@@ -99,7 +99,7 @@ RUN curl -fsSL \
 # /app                          — auth-proxy source
 RUN mkdir -p /users /opt/shared-extensions /opt/shared-machine-settings \
               /opt/shared-claude-settings /opt/shared-qwen-settings /config /app \
-    && chmod 711 /users \
+    && chmod 755 /users \
     && chmod 755 /opt/shared-extensions \
     && chmod 755 /opt/shared-machine-settings \
     && chmod 755 /opt/shared-claude-settings \
