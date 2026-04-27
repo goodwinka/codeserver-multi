@@ -163,10 +163,7 @@ class InstanceManager {
       SHARED_QWEN_SETTINGS
     );
 
-    // Ensure the Linux system user exists. Required when code-server starts for a user
-    // who has an existing browser session after a container restart: verify() is not
-    // called in that path, so /etc/passwd may not yet have this user, causing
-    // getLinuxUidGid() to return null and code-server to run as root.
+    // Existing sessions bypass verify(), so the Linux user may not exist in /etc/passwd after a container restart.
     try { users.ensureLinuxUser(username); } catch (e) {
       console.warn(`[instances] ensureLinuxUser failed for ${username}:`, e.message);
     }
