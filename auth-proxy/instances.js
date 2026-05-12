@@ -171,6 +171,21 @@ class InstanceManager {
       SHARED_CLAUDE_SETTINGS
     );
 
+    // Seed Claude Code onboarding marker for first-time users.
+    const claudeUserConfigFile = path.join(userHome, '.claude.json');
+    if (!fs.existsSync(claudeUserConfigFile)) {
+      fs.writeFileSync(
+        claudeUserConfigFile,
+        JSON.stringify({
+          hasCompletedOnboarding: true,
+          customApiKeyResponses: {
+            approved: ['sk-no-key-required'],
+            rejected: []
+          }
+        }, null, 2) + '\n'
+      );
+    }
+
     // Symlink shared Qwen Code CLI settings into ~/.qwen/settings.json.
     ensureSettingsSymlink(
       path.join(userHome, '.qwen'),
