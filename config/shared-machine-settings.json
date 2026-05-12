@@ -7,7 +7,7 @@
   "qwen-code.provider": "api-key",
   "workbench.colorTheme": "Visual Studio Dark",
   "workbench.startupEditor": "none",
-  "terminal.integrated.defaultProfile.linux": "tmux",
+  "terminal.integrated.defaultProfile.linux": "bash",
   "terminal.integrated.profiles.linux": {
     "tmux": {
       "path": "/usr/bin/tmux",
