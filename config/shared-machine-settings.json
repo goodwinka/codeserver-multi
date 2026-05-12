@@ -1,28 +1,28 @@
 {
   "_comment": "Машинные настройки VS Code, общие для всех пользователей. Копируются в /opt/shared-machine-settings/ при запуске контейнера и подключаются симлинком к {userDataDir}/Machine/settings.json каждого пользователя. Пользователи не могут их переопределить.",
-
   "extensions.autoUpdate": false,
   "extensions.autoCheckUpdates": false,
   "telemetry.telemetryLevel": "off",
-
   "claudeCode.disableLoginPrompt": true,
-
   "qwen-code.provider": "api-key",
-
   "workbench.colorTheme": "Visual Studio Dark",
-
   "workbench.startupEditor": "none",
-
   "terminal.integrated.defaultProfile.linux": "tmux",
   "terminal.integrated.profiles.linux": {
     "tmux": {
       "path": "/usr/bin/tmux",
-      "args": ["new-session", "-A", "-s", "main"],
+      "args": [
+        "new-session",
+        "-A",
+        "-s",
+        "main"
+      ],
       "icon": "terminal"
     },
     "bash": {
       "path": "/bin/bash",
       "icon": "terminal-bash"
     }
-  }
+  },
+  "chat.disableAIFeatures": true
 }
