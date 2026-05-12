@@ -6,3 +6,6 @@ config/sessions/
 config/users.json
 *.log
 .DS_Store
+
+shared-extensions/*
+!shared-extensions/.gitkeep
