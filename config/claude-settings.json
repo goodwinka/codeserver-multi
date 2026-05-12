@@ -35,16 +35,5 @@
       }
     }
   },
-  "enableAllProjectMcpServers": true,
-  "mcpServers": {
-    "intellisense": {
-      "type": "stdio",
-      "command": "node",
-      "args": [
-        "/opt/lsp-mcp-server/dist/index.js",
-        "--project",
-        "."
-      ]
-    }
-  }
+  "_comment": "Общие настройки Claude Code (settings.json) для всех пользователей контейнера. MCP-серверы задаются отдельно в config/managed-mcp.json и разворачиваются в /etc/claude-code/managed-mcp.json."
 }

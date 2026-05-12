@@ -79,6 +79,7 @@ docker compose logs -f
 | `./users/<name>/.local/share/code-server/` | Настройки его code-server    |
 | `./config/users.json`       | БД пользователей (bcrypt-хеши)            |
 | `./config/extensions.json`  | Стартовый список общих расширений         |
+| `./config/managed-mcp.json` | Системный список общих MCP-серверов Claude Code |
 | `./config/sessions/`        | Серверные сессии express-session          |
 | `./shared-extensions/`      | `/opt/shared-extensions` — общие плагины  |
 
@@ -93,6 +94,17 @@ docker compose logs -f
 | `IDLE_TIMEOUT_MS`         | Через сколько мс простоя гасить code-server (1 ч)     |
 | `USERS_ROOT`              | Корень пользовательских домашних папок (`/users`)     |
 | `SHARED_EXT_DIR`          | Каталог общих расширений (`/opt/shared-extensions`)   |
+
+## Общие MCP-серверы для Claude Code
+
+Для общих MCP-серверов используется **managed-конфиг**: `config/managed-mcp.json`, который при старте контейнера разворачивается в системный путь `/etc/claude-code/managed-mcp.json`. Это системный (managed) уровень Claude Code, поэтому конфигурация едина для всех пользователей контейнера.
+
+Как изменить общий список MCP-серверов:
+
+1. Отредактируйте `config/managed-mcp.json` (`mcpServers`).
+2. Перезапустите контейнер: `docker compose restart`.
+
+После рестарта конфиг будет заново применён в `/etc/claude-code/managed-mcp.json` и станет общим для всех пользователей.
 
 ## Установка общих расширений
 

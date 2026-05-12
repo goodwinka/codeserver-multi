@@ -20,6 +20,9 @@ fi
 if [ ! -f /config/shared-user-settings.json ] && [ -f /config.default/shared-user-settings.json ]; then
   cp /config.default/shared-user-settings.json /config/shared-user-settings.json
 fi
+if [ ! -f /config/managed-mcp.json ] && [ -f /config.default/managed-mcp.json ]; then
+  cp /config.default/managed-mcp.json /config/managed-mcp.json
+fi
 
 mkdir -p /config/sessions /opt/shared-extensions /opt/shared-machine-settings \
          /opt/shared-claude-settings /opt/shared-qwen-settings \
@@ -56,6 +59,20 @@ delete src['_comment'];
 require('fs').writeFileSync('/opt/shared-claude-settings/settings.json', JSON.stringify(src, null, 2));
 "
   echo "[entrypoint] shared Claude Code settings deployed to /opt/shared-claude-settings/settings.json"
+fi
+
+
+# Разворачиваем системный managed-mcp.json для общих MCP-серверов Claude Code.
+# Linux path по документации Claude Code: /etc/claude-code/managed-mcp.json
+if [ -f /config/managed-mcp.json ]; then
+  mkdir -p /etc/claude-code
+  node -e "
+const src = JSON.parse(require('fs').readFileSync('/config/managed-mcp.json', 'utf8'));
+delete src['_comment'];
+require('fs').writeFileSync('/etc/claude-code/managed-mcp.json', JSON.stringify(src, null, 2));
+"
+  chmod 644 /etc/claude-code/managed-mcp.json
+  echo "[entrypoint] managed MCP config deployed to /etc/claude-code/managed-mcp.json"
 fi
 
 # Разворачиваем дефолтные пользовательские настройки VS Code для новых пользователей.
