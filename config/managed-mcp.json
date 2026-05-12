@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "intellisense": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/opt/lsp-mcp-server/dist/index.js",
+        "--project",
+        "."
+      ]
+    }
+  },
+  "_comment": "Системный managed-mcp.json: общий список MCP-серверов для всех пользователей Claude Code."
+}
