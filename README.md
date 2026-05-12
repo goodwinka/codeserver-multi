@@ -30,6 +30,7 @@
 - ✅ Персональный процесс code-server на пользователя (изоляция настроек и истории)
 - ✅ Файлы пользователя — в `./users/<name>/` на хосте
 - ✅ Общие расширения: `/opt/shared-extensions`, ставятся через админку или JSON
+- ✅ Плагины теперь хранятся в `./shared-extensions` (bind-mount), поэтому их проще переносить вместе с проектом/бэкапом
 - ✅ Админ-панель: CRUD пользователей, сброс пароля, отключение, список запущенных экземпляров, установка плагинов
 - ✅ Страница аккаунта: смена пароля, выход / смена пользователя
 - ✅ Авто-остановка простаивающих экземпляров (по умолчанию через 1 час)
@@ -42,7 +43,7 @@
 cd codeserver-multi
 
 # 2. Создайте папку для пользовательских файлов и конфигов
-mkdir -p users config
+mkdir -p users config shared-extensions
 
 # 3. ВАЖНО: отредактируйте docker-compose.yml
 #    - замените SESSION_SECRET на что-то длинное и случайное
@@ -79,7 +80,7 @@ docker compose logs -f
 | `./config/users.json`       | БД пользователей (bcrypt-хеши)            |
 | `./config/extensions.json`  | Стартовый список общих расширений         |
 | `./config/sessions/`        | Серверные сессии express-session          |
-| volume `shared-extensions`  | `/opt/shared-extensions` — общие плагины  |
+| `./shared-extensions/`      | `/opt/shared-extensions` — общие плагины  |
 
 ## Переменные окружения
 

@@ -12,7 +12,7 @@ services:
       # Конфиг (users.json и т.п.) — чтобы переживал пересборку контейнера
       - ./config:/config
       # Общие расширения — один раз установил, доступны всем
-      - shared-extensions:/opt/shared-extensions
+      - ./shared-extensions:/opt/shared-extensions
     environment:
       # Меняйте перед первым запуском!
       SESSION_SECRET: "change-me-please-${RANDOM}${RANDOM}"
@@ -32,5 +32,3 @@ services:
         soft: 65536
         hard: 65536
 
-volumes:
-  shared-extensions:
