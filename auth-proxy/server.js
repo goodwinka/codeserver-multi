@@ -25,6 +25,11 @@ const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'cs_sid';
 const SESSIONS_DIR = process.env.SESSIONS_DIR || '/config/sessions';
 const ALLOW_REGISTRATION = process.env.ALLOW_REGISTRATION === 'true';
 
+// Enforce browser-side egress limits when the UI is opened from LAN hosts:
+// allow app/websocket calls only back to this origin.
+const BROWSER_CONNECT_CSP = "connect-src 'self' ws: wss:;";
+
+
 // ----- Bootstrap admin if configured -----
 (async () => {
   try {
@@ -76,11 +81,22 @@ proxy.on('error', (err, req, res) => {
   }
 });
 
+
+proxy.on('proxyRes', proxyRes => {
+  proxyRes.headers['content-security-policy'] = BROWSER_CONNECT_CSP;
+});
+
 // ----- Express app -----
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', true);
 app.use(sessionMiddleware);
+
+
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', BROWSER_CONNECT_CSP);
+  next();
+});
 
 // Стаические ресурсы панели — по префиксу /_auth, чтобы не конфликтовать с code-server
 app.use('/_auth/static', express.static(path.join(__dirname, 'public'), {
