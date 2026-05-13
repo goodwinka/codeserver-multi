@@ -24,5 +24,14 @@
       "icon": "terminal-bash"
     }
   },
-  "chat.disableAIFeatures": true
+  "chat.disableAIFeatures": true,
+  "extensions.gallery.enabled": false,
+  "extensions.ignoreRecommendations": true,
+  "update.mode": "none",
+  "workbench.enableExperiments": false,
+  "workbench.settings.enableNaturalLanguageSearch": false,
+  "settingsSync.enabled": false,
+  "telemetry.feedback.enabled": false,
+  "workbench.tips.enabled": false,
+  "workbench.welcomePage.walkthroughs.openOnInstall": false
 }

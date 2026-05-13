@@ -226,6 +226,9 @@ class InstanceManager {
         USER: username,
         LOGNAME: username,
         SHELL: '/bin/bash',
+        // For user sessions, block extension marketplace endpoints in the browser workbench.
+        EXTENSIONS_GALLERY: JSON.stringify({ serviceUrl: '', cacheUrl: '', itemUrl: '' }),
+        VSCODE_DISABLE_CRASH_REPORTER: 'true',
         // Отключаем встроенный прокси code-server к marketplace — админ сам ставит расширения
       },
       stdio: ['ignore', 'pipe', 'pipe']
