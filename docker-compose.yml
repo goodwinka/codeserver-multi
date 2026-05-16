@@ -13,6 +13,8 @@ services:
       - ./config:/config
       # Общие расширения — один раз установил, доступны всем
       - ./shared-extensions:/opt/shared-extensions
+      # CUDA Toolkit с хоста (только чтение)
+      - /usr/local/cuda:/usr/local/cuda:ro
     environment:
       # Меняйте перед первым запуском!
       SESSION_SECRET: "change-me-please-${RANDOM}${RANDOM}"
@@ -25,10 +27,21 @@ services:
       SESSION_COOKIE_NAME: "cs_sid"
       # API-ключ для Qwen Code (локальный LLM не требует настоящего ключа)
       QWEN_API_KEY: "sk-no-key-required"
+      # NVIDIA runtime vars
+      NVIDIA_VISIBLE_DEVICES: "all"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+      CUDA_HOME: "/usr/local/cuda"
+      PATH: "/usr/local/cuda/bin:${PATH}"
+      LD_LIBRARY_PATH: "/usr/local/cuda/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}"
     restart: unless-stopped
+    # Дать контейнеру доступ к GPU (требуется nvidia-container-toolkit на хосте)
+    gpus: all
+    device_requests:
+      - driver: nvidia
+        count: -1
+        capabilities: [gpu, utility, compute]
     # code-server любит много file watchers
     ulimits:
       nofile:
         soft: 65536
         hard: 65536
-
