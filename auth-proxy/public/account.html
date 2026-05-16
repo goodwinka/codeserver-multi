@@ -104,6 +104,19 @@
       <div class="hint">«Выйти / сменить пользователя» завершит сессию и вернёт на страницу входа, где можно войти под другим аккаунтом.</div>
     </div>
 
+
+    <div class="card">
+      <h2>Git настройки</h2>
+      <label for="git-name">Git user.name</label><input id="git-name" placeholder="Имя автора коммитов">
+      <label for="git-email">Git user.email</label><input id="git-email" placeholder="email@example.com">
+      <label for="gitlab-url">GitLab URL</label><input id="gitlab-url" placeholder="https://gitlab.example.com">
+      <label for="gitlab-token">GitLab Token</label><input id="gitlab-token" placeholder="glpat-...">
+      <label for="git-proxy">Proxy URL (optional)</label><input id="git-proxy" placeholder="http://proxy:3128">
+      <div class="actions"><button class="btn primary" id="git-btn">Сохранить git настройки</button></div>
+      <div id="git-msg" class="msg"></div>
+      <div class="hint">Поддерживаются токены GitLab, несколько GitLab серверов (через API), url.insteadOf и прокси из окружения.</div>
+    </div>
+
     <div class="card">
       <h2>Смена пароля</h2>
       <label for="cur">Текущий пароль</label>
@@ -120,6 +133,19 @@
   </div>
 
   <script>
+
+    async function loadSettings(){
+      const r = await fetch('/_auth/api/me/settings');
+      if(!r.ok) return;
+      const st = await r.json();
+      document.getElementById('git-name').value = st.git?.name || '';
+      document.getElementById('git-email').value = st.git?.email || '';
+      const first = Array.isArray(st.gitlabs) && st.gitlabs[0] ? st.gitlabs[0] : {};
+      document.getElementById('gitlab-url').value = first.url || '';
+      document.getElementById('gitlab-token').value = first.token || '';
+      document.getElementById('git-proxy').value = st.git?.proxy || '';
+    }
+
     async function loadMe(){
       try{
         const r = await fetch('/_auth/api/me');
@@ -149,7 +175,22 @@
         document.getElementById('cur').value=''; document.getElementById('new').value=''; document.getElementById('new2').value='';
       } else { msg.textContent = j.error || 'Ошибка.'; msg.classList.add('err'); }
     });
+
+    document.getElementById('git-btn').addEventListener('click', async () => {
+      const msg = document.getElementById('git-msg'); msg.className='msg';
+      const payload = {
+        git: { name: document.getElementById('git-name').value, email: document.getElementById('git-email').value, proxy: document.getElementById('git-proxy').value },
+        gitlabs: [{ url: document.getElementById('gitlab-url').value, token: document.getElementById('gitlab-token').value }],
+        urlRedirects: []
+      };
+      const r = await fetch('/_auth/api/me/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      const j = await r.json().catch(()=>({}));
+      if (r.ok) { msg.textContent='Git настройки сохранены.'; msg.classList.add('ok'); }
+      else { msg.textContent=j.error || 'Ошибка.'; msg.classList.add('err'); }
+    });
+
     loadMe();
+    loadSettings();
   </script>
 </body>
 </html>

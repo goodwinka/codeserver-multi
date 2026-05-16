@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const { execSync } = require('child_process');
+const { writeUserGitconfig } = require('./gitconfig');
 
 const USERS_FILE = process.env.USERS_FILE || '/config/users.json';
 const USERS_ROOT = process.env.USERS_ROOT || '/users';
@@ -114,11 +115,13 @@ class UserStore {
       passwordHash: await bcrypt.hash(password, 10),
       isAdmin: !!isAdmin,
       createdAt: new Date().toISOString(),
-      disabled: false
+      disabled: false,
+      settings: { git: {}, gitlabs: [], urlRedirects: [] }
     };
     this.users.push(user);
     this._save();
     this._ensureHome(username);
+    this.writeGitconfig(username);
     return { username: user.username, isAdmin: user.isAdmin };
   }
 
@@ -128,6 +131,7 @@ class UserStore {
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return null;
     this._ensureHome(username);
+    this.writeGitconfig(username);
     return { username: user.username, isAdmin: !!user.isAdmin };
   }
 
@@ -161,6 +165,29 @@ class UserStore {
     if (!user) throw new Error('User not found');
     user.disabled = !!disabled;
     this._save();
+  }
+
+
+  getSettings(username) {
+    const user = this.find(username);
+    if (!user) throw new Error('User not found');
+    return user.settings || { git: {}, gitlabs: [], urlRedirects: [] };
+  }
+
+  setSettings(username, settings) {
+    const user = this.find(username);
+    if (!user) throw new Error('User not found');
+    user.settings = settings || { git: {}, gitlabs: [], urlRedirects: [] };
+    this._save();
+    this.writeGitconfig(username);
+  }
+
+  writeGitconfig(username) {
+    const user = this.find(username);
+    if (!user) return;
+    let uid;
+    try { uid = parseInt(execSync(`id -u ${username}`, { encoding: 'utf8' }).trim(), 10); } catch (_) {}
+    writeUserGitconfig(username, user.settings || {}, Number.isInteger(uid) ? uid : undefined);
   }
 
   async bootstrap({ username, password }) {
