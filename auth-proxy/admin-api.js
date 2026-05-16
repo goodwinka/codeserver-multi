@@ -35,6 +35,29 @@ router.post('/me/password', requireAuth, express.json(), async (req, res) => {
   }
 });
 
+
+router.get('/me/settings', requireAuth, (req, res) => {
+  try {
+    res.json(users.getSettings(req.session.user.username));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+router.post('/me/settings', requireAuth, express.json(), (req, res) => {
+  try {
+    const payload = req.body || {};
+    users.setSettings(req.session.user.username, {
+      git: payload.git || {},
+      gitlabs: Array.isArray(payload.gitlabs) ? payload.gitlabs : [],
+      urlRedirects: Array.isArray(payload.urlRedirects) ? payload.urlRedirects : []
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
 // ---------- Admin-only endpoints ----------
 
 router.use('/admin', requireAdmin, express.json());
