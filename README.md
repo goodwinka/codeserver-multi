@@ -95,6 +95,28 @@ docker compose logs -f
 | `USERS_ROOT`              | Корень пользовательских домашних папок (`/users`)     |
 | `SHARED_EXT_DIR`          | Каталог общих расширений (`/opt/shared-extensions`)   |
 
+## CUDA Toolkit с хоста внутри контейнера
+
+Если CUDA Toolkit уже установлен на хосте (обычно в `/usr/local/cuda`),
+`docker-compose.yml` уже пробрасывает его в контейнер как read-only mount
+и выставляет переменные окружения `CUDA_HOME`, `PATH`, `LD_LIBRARY_PATH`.
+
+Что нужно на хосте:
+
+1. Установленный NVIDIA Driver.
+2. Установленный NVIDIA Container Toolkit.
+3. Наличие каталога `/usr/local/cuda` на хосте.
+
+Проверка после запуска:
+
+```bash
+docker compose up -d --build
+docker compose exec codeserver-multi bash -lc 'echo $CUDA_HOME && nvcc --version && nvidia-smi'
+```
+
+Если `nvcc` не найден, проверьте, что на хосте действительно установлен именно
+CUDA Toolkit (а не только драйвер), и что он доступен по пути `/usr/local/cuda`.
+
 ## Общие MCP-серверы для Claude Code
 
 Для общих MCP-серверов используется **managed-конфиг**: `config/managed-mcp.json`, который при старте контейнера разворачивается в системный путь `/etc/claude-code/managed-mcp.json`. Это системный (managed) уровень Claude Code, поэтому конфигурация едина для всех пользователей контейнера.
