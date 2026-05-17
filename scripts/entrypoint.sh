@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 
+# Ensure core utils are reachable even when PATH is minimal/empty in some runtimes.
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin${PATH:+:$PATH}"
+export PATH
+
 # Если /config пуст (свежий том) — копируем дефолты
 if [ ! -f /config/users.json ] && [ -f /config.default/users.json ]; then
   cp /config.default/users.json /config/users.json
