@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
 # Если /config пуст (свежий том) — копируем дефолты
 if [ ! -f /config/users.json ] && [ -f /config.default/users.json ]; then

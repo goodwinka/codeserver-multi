@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # Устанавливает список общих расширений code-server.
 # Вход: JSON-файл вида {"extensions":["publisher.name", "publisher.name@1.2.3", ...]}
 set -eu
