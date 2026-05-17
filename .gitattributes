@@ -2,3 +2,4 @@
 # core.autocrlf=true don't produce bash\r shebangs that break /usr/bin/env.
 *.sh    text eol=lf
 *.bash  text eol=lf
+* text=auto eol=lf

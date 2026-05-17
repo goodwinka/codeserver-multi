@@ -4,7 +4,7 @@ services:
     image: codeserver-multi:latest
     container_name: codeserver-multi
     ports:
-      - "8080:8080"
+      - "18080:8080"
     volumes:
       # User home directories — bind-mount from host.
       # Каждая подпапка внутри — это отдельный пользователь: ./users/alice, ./users/bob, ...
@@ -35,11 +35,12 @@ services:
       LD_LIBRARY_PATH: "/usr/local/cuda/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}"
     restart: unless-stopped
     # Дать контейнеру доступ к GPU (требуется nvidia-container-toolkit на хосте)
+    runtime: nvidia
     gpus: all
-    device_requests:
-      - driver: nvidia
-        count: -1
-        capabilities: [gpu, utility, compute]
+    #device_requests:
+    #  - driver: nvidia
+    #    count: -1
+    #    capabilities: [gpu, utility, compute]
     # code-server любит много file watchers
     ulimits:
       nofile:
