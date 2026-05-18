@@ -9,6 +9,13 @@
     html, body { height: 100%; overflow: hidden; background: #0b0d10; }
     body { display: flex; flex-direction: column; }
 
+    #main-wrap {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
     #cs-frame {
       flex: 1;
       border: none;
@@ -89,15 +96,31 @@
     }
 
     #cs-admin-btn { display: none; }
+    #cs-gui-frame {
+      width: 100%;
+      height: 42vh;
+      border: none;
+      border-top: 1px solid #1e2530;
+      display: none;
+      background: #000;
+    }
+    #cs-gui-btn.active {
+      color: #5cdbd3;
+      border-color: rgba(92, 219, 211, 0.35);
+      background: rgba(92, 219, 211, 0.06);
+    }
   </style>
 </head>
 <body>
+  <div id="main-wrap">
   <iframe
     id="cs-frame"
     src="/?__cs=1"
     allow="clipboard-read; clipboard-write"
     title="code-server"
   ></iframe>
+  <iframe id="cs-gui-frame" title="virtual-screen"></iframe>
+</div>
 
   <div id="cs-panel">
     <span class="cs-user" id="cs-username"></span>
@@ -108,12 +131,45 @@
     <a href="/_auth/admin" id="cs-admin-btn" class="cs-btn" title="Панель администратора">
       ⊞&nbsp;Админ
     </a>
+    <button id="cs-gui-btn" class="cs-btn" title="Показать или скрыть виртуальный экран">
+      🖥️&nbsp;Виртуальный экран
+    </button>
     <a href="/_auth/logout" class="cs-btn logout" title="Выйти из аккаунта">
       ⏻&nbsp;Выход
     </a>
   </div>
 
   <script>
+    const guiBtn = document.getElementById('cs-gui-btn');
+    const guiFrame = document.getElementById('cs-gui-frame');
+    let guiLoaded = false;
+
+    guiBtn.addEventListener('click', async () => {
+      const isShown = guiFrame.style.display === 'block';
+      if (isShown) {
+        guiFrame.style.display = 'none';
+        guiBtn.classList.remove('active');
+        return;
+      }
+      if (!guiLoaded) {
+        guiBtn.disabled = true;
+        try {
+          const r = await fetch('/_auth/gui-url');
+          const payload = await r.json();
+          if (!r.ok || !payload.url) throw new Error(payload.error || 'unknown');
+          guiFrame.src = payload.url;
+          guiLoaded = true;
+        } catch (e) {
+          alert('Ошибка запуска виртуального экрана: ' + e.message);
+          guiBtn.disabled = false;
+          return;
+        }
+        guiBtn.disabled = false;
+      }
+      guiFrame.style.display = 'block';
+      guiBtn.classList.add('active');
+    });
+
     fetch('/_auth/api/me')
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(me => {

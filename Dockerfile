@@ -40,6 +40,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         qttools5-dev \
         qttools5-dev-tools \
         libqt5widgets5 \
+        xvfb \
+        openbox \
+        x11vnc \
+        websockify \
+        novnc \
     && rm -rf /var/lib/apt/lists/*
 
 # Python language servers (installed system-wide; --break-system-packages required on Debian 12)
