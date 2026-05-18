@@ -226,6 +226,7 @@ class InstanceManager {
         USER: username,
         LOGNAME: username,
         SHELL: '/bin/bash',
+        PATH: process.env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
         // For user sessions, block extension marketplace endpoints in the browser workbench.
         EXTENSIONS_GALLERY: JSON.stringify({ serviceUrl: '', cacheUrl: '', itemUrl: '' }),
         VSCODE_DISABLE_CRASH_REPORTER: 'true',
