@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const net = require('net');
+const { getDisplayForUser } = require('./gui-display');
 // Creates dir and ensures dir/filename is a symlink pointing to target.
 // Skips silently if target file doesn't exist yet.
 function ensureSettingsSymlink(dir, filename, target) {
@@ -215,6 +216,7 @@ class InstanceManager {
         // For user sessions, block extension marketplace endpoints in the browser workbench.
         EXTENSIONS_GALLERY: JSON.stringify({ serviceUrl: '', cacheUrl: '', itemUrl: '' }),
         VSCODE_DISABLE_CRASH_REPORTER: 'true',
+        DISPLAY: getDisplayForUser(username),
         // Отключаем встроенный прокси code-server к marketplace — админ сам ставит расширения
       },
       stdio: ['ignore', 'pipe', 'pipe']
