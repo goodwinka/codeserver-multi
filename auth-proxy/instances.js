@@ -58,8 +58,6 @@ const SHARED_USER_SETTINGS = process.env.SHARED_USER_SETTINGS || '/opt/shared-us
 const PORT_MIN = 8100;
 const PORT_MAX = 8999;
 const READY_TIMEOUT_MS = 30_000;
-// Через сколько мс неактивности гасим экземпляр code-server.
-const IDLE_TIMEOUT_MS = parseInt(process.env.IDLE_TIMEOUT_MS || '3600000', 10); // 1 час
 
 function portAvailable(port) {
   return new Promise(resolve => {
@@ -102,19 +100,6 @@ function waitForHttp(port, timeoutMs) {
 class InstanceManager {
   constructor() {
     this.instances = new Map(); // username -> { port, process, lastActivity, startingPromise }
-    // Периодическая зачистка простаивающих процессов
-    this._gcTimer = setInterval(() => this._gc(), 60_000);
-    this._gcTimer.unref?.();
-  }
-
-  _gc() {
-    const now = Date.now();
-    for (const [user, inst] of this.instances) {
-      if (now - inst.lastActivity > IDLE_TIMEOUT_MS) {
-        console.log(`[instances] GC stop idle instance for ${user}`);
-        this.stop(user);
-      }
-    }
   }
 
   async ensureRunning(username) {
