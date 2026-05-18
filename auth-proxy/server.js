@@ -24,6 +24,7 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'insecure-dev-secret-change
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'cs_sid';
 const SESSIONS_DIR = process.env.SESSIONS_DIR || '/config/sessions';
 const ALLOW_REGISTRATION = process.env.ALLOW_REGISTRATION === 'true';
+const SESSION_TTL_SECONDS = parseInt(process.env.SESSION_TTL_SECONDS || String(10 * 365 * 24 * 3600), 10); // 10 лет
 
 // Enforce browser-side egress limits with a balanced CSP:
 // allow same-origin app/websocket calls plus outbound HTTP(S) used by extensions.
@@ -45,7 +46,7 @@ const BROWSER_CONNECT_CSP = "connect-src 'self' ws: wss: http: https:;";
 // ----- Session middleware (reused in HTTP and WS upgrade) -----
 const sessionStore = new FileStore({
   path: SESSIONS_DIR,
-  ttl: 7 * 24 * 3600,
+  ttl: SESSION_TTL_SECONDS,
   retries: 1,
   logFn: () => {}
 });
@@ -56,11 +57,11 @@ const sessionMiddleware = session({
   store: sessionStore,
   resave: false,
   saveUninitialized: false,
-  rolling: true,
+  rolling: false,
   cookie: {
     httpOnly: true,
     sameSite: 'lax',
-    maxAge: 7 * 24 * 3600 * 1000,
+    maxAge: SESSION_TTL_SECONDS * 1000,
     // secure: true,  // включите при HTTPS
   }
 });

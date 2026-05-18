@@ -89,9 +89,9 @@ docker compose logs -f
 |---------------------------|-------------------------------------------------------|
 | `SESSION_SECRET`          | **Обязательно** смените. Секрет для подписи сессий.   |
 | `SESSION_COOKIE_NAME`     | Имя cookie сессии (default: `cs_sid`)                 |
+| `SESSION_TTL_SECONDS`     | Срок жизни серверной сессии и cookie (default: 10 лет)|
 | `BOOTSTRAP_ADMIN_USER`    | Имя стартового админа                                 |
 | `BOOTSTRAP_ADMIN_PASSWORD`| Пароль стартового админа (создаётся только если админов ещё нет) |
-| `IDLE_TIMEOUT_MS`         | Через сколько мс простоя гасить code-server (1 ч)     |
 | `USERS_ROOT`              | Корень пользовательских домашних папок (`/users`)     |
 | `SHARED_EXT_DIR`          | Каталог общих расширений (`/opt/shared-extensions`)   |
 
