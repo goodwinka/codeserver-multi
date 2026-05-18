@@ -25,9 +25,9 @@ const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'cs_sid';
 const SESSIONS_DIR = process.env.SESSIONS_DIR || '/config/sessions';
 const ALLOW_REGISTRATION = process.env.ALLOW_REGISTRATION === 'true';
 
-// Enforce browser-side egress limits when the UI is opened from LAN hosts:
-// allow app/websocket calls only back to this origin.
-const BROWSER_CONNECT_CSP = "connect-src 'self' ws: wss:;";
+// Enforce browser-side egress limits with a balanced CSP:
+// allow same-origin app/websocket calls plus outbound HTTP(S) used by extensions.
+const BROWSER_CONNECT_CSP = "connect-src 'self' ws: wss: http: https:;";
 
 
 // ----- Bootstrap admin if configured -----
