@@ -34,6 +34,32 @@ function ensureLinuxUser(username) {
   }
 }
 
+
+function setLinuxAdmin(username, isAdmin) {
+  try {
+    execSync(`getent group sudo`, { stdio: 'ignore' });
+    if (isAdmin) execSync(`usermod -aG sudo ${username}`, { stdio: 'ignore' });
+    else execSync(`gpasswd -d ${username} sudo`, { stdio: 'ignore' });
+    return;
+  } catch (_) {}
+  try {
+    execSync(`getent group wheel`, { stdio: 'ignore' });
+    if (isAdmin) execSync(`usermod -aG wheel ${username}`, { stdio: 'ignore' });
+    else execSync(`gpasswd -d ${username} wheel`, { stdio: 'ignore' });
+  } catch (_) { /* ignore */ }
+}
+
+function setHomeAclForAdmin(homeDir, adminUser, enable) {
+  try {
+    if (enable) {
+      execSync(`setfacl -Rm u:${adminUser}:rwx ${homeDir}`);
+      execSync(`setfacl -Rm d:u:${adminUser}:rwx ${homeDir}`);
+    } else {
+      execSync(`setfacl -Rx u:${adminUser} ${homeDir}`);
+      execSync(`setfacl -Rk ${homeDir}`);
+    }
+  } catch (_) { /* ignore when ACL tools are not available */ }
+}
 // Removes the Linux system user (home directory is intentionally kept).
 function removeLinuxUser(username) {
   try {
@@ -84,6 +110,8 @@ class UserStore {
       execSync(`chown -Rh ${username}:${username} ${home}`);
       execSync(`chmod 700 ${home}`);
     } catch (_) { /* ignore — may fail outside a real Linux container */ }
+    const admins = this.users.filter(u => u.isAdmin && u.username !== username).map(u => u.username);
+    for (const adminName of admins) setHomeAclForAdmin(home, adminName, true);
     return home;
   }
 
@@ -121,6 +149,7 @@ class UserStore {
     this.users.push(user);
     this._save();
     this._ensureHome(username);
+    setLinuxAdmin(username, user.isAdmin);
     this.writeGitconfig(username);
     return { username: user.username, isAdmin: user.isAdmin };
   }
@@ -131,6 +160,7 @@ class UserStore {
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return null;
     this._ensureHome(username);
+    setLinuxAdmin(username, user.isAdmin);
     this.writeGitconfig(username);
     return { username: user.username, isAdmin: !!user.isAdmin };
   }
@@ -158,6 +188,12 @@ class UserStore {
     if (!user) throw new Error('User not found');
     user.isAdmin = !!isAdmin;
     this._save();
+    ensureLinuxUser(username);
+    setLinuxAdmin(username, user.isAdmin);
+    for (const u of this.users) {
+      const home = path.join(USERS_ROOT, u.username);
+      setHomeAclForAdmin(home, username, user.isAdmin);
+    }
   }
 
   setDisabled(username, disabled) {
