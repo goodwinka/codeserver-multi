@@ -12,6 +12,10 @@
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "Qwen3.5-27B-UD-IQ3_XXS_t3",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "Qwen3.5-27B-UD-IQ3_XXS_t3"
   },
+  "plansDirectory" : "./plans",
+  "prefersReducedMotion" : true,
+  "terminalProgressBarEnabled" : false,
+  "effortLevel" : "high",
   "permissions": {
     "allow": [],
     "deny": []
