@@ -280,9 +280,10 @@ server.on('upgrade', (req, socket, head) => {
     const user = req.session?.user;
     if (!user || !isSessionUserActive(user)) { socket.destroy(); return; }
     try {
-      if ((req.url || '').startsWith(`/_auth/gui/${user.username}/`)) {
+      const guiPrefix = `/_auth/gui/${user.username}`;
+      const upgradeUrl = req.url || '';
+      if (upgradeUrl === guiPrefix || upgradeUrl.startsWith(`${guiPrefix}/`) || upgradeUrl.startsWith(`${guiPrefix}?`)) {
         const gui = await guiInstances.ensureRunning(user.username);
-        const guiPrefix = `/_auth/gui/${user.username}`;
         const originalUrl = req.url || '/';
         req.url = originalUrl.startsWith(guiPrefix) ? originalUrl.slice(guiPrefix.length) || '/' : originalUrl;
         if (req.url === '/websockify' || req.url.startsWith('/websockify?')) {
