@@ -47,7 +47,7 @@ class GuiInstanceManager {
       'x11vnc -display "$DISPLAY" -rfbport 0 -localhost -nopw -forever -shared >/tmp/x11vnc-${USERNAME}.log 2>&1 &',
       'X11VNC_PID=$!',
       'for i in $(seq 1 40); do',
-      '  VNC_PORT=$(sed -n "s/.*PORT=\\([0-9]\\+\\).*/\\1/p" /tmp/x11vnc-${USERNAME}.log | tail -n1)',
+      '  VNC_PORT=$(awk \'match($0,/PORT=[0-9]+/){print substr($0,RSTART+5,RLENGTH-5)}\' /tmp/x11vnc-${USERNAME}.log | tail -n1)',
       '  [ -n "$VNC_PORT" ] && break',
       '  sleep 0.25',
       'done',
