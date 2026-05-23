@@ -217,7 +217,7 @@ app.get('/_auth/gui-url', async (req, res) => {
   if (!isSessionUserActive(req.session.user)) return res.status(403).json({ error: 'Forbidden' });
   try {
     const inst = await guiInstances.ensureRunning(req.session.user.username);
-    res.json({ ok: true, url: `/_auth/gui/${req.session.user.username}/vnc.html?autoconnect=1&resize=scale` });
+    res.json({ ok: true, url: `/_auth/gui/${req.session.user.username}/vnc_lite.html?autoconnect=1&resize=scale&path=websockify` });
   } catch (e) {
     res.status(500).json({ error: 'Не удалось запустить виртуальный экран: ' + e.message });
   }
@@ -229,6 +229,10 @@ app.use('/_auth/gui/:username', async (req, res) => {
   if (req.params.username !== req.session.user.username) return res.status(403).send('Forbidden');
   try {
     const inst = await guiInstances.ensureRunning(req.session.user.username);
+    const guiPrefix = `/_auth/gui/${req.session.user.username}`;
+    const originalUrl = req.originalUrl || req.url || '/';
+    const idx = originalUrl.indexOf(guiPrefix);
+    req.url = idx >= 0 ? (originalUrl.slice(idx + guiPrefix.length) || '/') : originalUrl;
     proxy.web(req, res, { target: `http://127.0.0.1:${inst.port}` });
   } catch (e) {
     res.status(500).send('Не удалось запустить виртуальный экран: ' + e.message);
@@ -256,7 +260,6 @@ app.use(async (req, res) => {
     return res.redirect('/_auth/login');
   }
   try {
-    await guiInstances.ensureRunning(req.session.user.username);
     const inst = await instances.ensureRunning(req.session.user.username);
     instances.touch(req.session.user.username);
     proxy.web(req, res, { target: `http://127.0.0.1:${inst.port}` });
@@ -278,11 +281,13 @@ server.on('upgrade', (req, socket, head) => {
     const user = req.session?.user;
     if (!user || !isSessionUserActive(user)) { socket.destroy(); return; }
     try {
-      if ((req.url || '').startsWith(`/_auth/gui/${user.username}/`)) {
+      const guiPrefix = `/_auth/gui/${user.username}`;
+      const upgradeUrl = req.url || '';
+      const guiIdx = upgradeUrl.indexOf(guiPrefix);
+      if (guiIdx >= 0) {
         const gui = await guiInstances.ensureRunning(user.username);
-        const guiPrefix = `/_auth/gui/${user.username}`;
         const originalUrl = req.url || '/';
-        req.url = originalUrl.startsWith(guiPrefix) ? originalUrl.slice(guiPrefix.length) || '/' : originalUrl;
+        req.url = originalUrl.slice(guiIdx + guiPrefix.length) || '/';
         proxy.ws(req, socket, head, { target: `ws://127.0.0.1:${gui.port}` });
         return;
       }
