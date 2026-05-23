@@ -88,7 +88,7 @@ class GuiInstanceManager {
       'fi',
       'openbox >/tmp/openbox-${USERNAME}.log 2>&1 &',
       'OPENBOX_PID=$!',
-      `x11vnc -display "$DISPLAY" -rfbport ${vncPort} -localhost -nopw -forever -shared >/tmp/x11vnc-${USERNAME}.log 2>&1 &`,
+      `x11vnc -display "$DISPLAY" -rfbport ${vncPort} -localhost -nopw -forever -shared >/tmp/x11vnc-\${USERNAME}.log 2>&1 &`,
       'X11VNC_PID=$!',
       `websockify --web=/usr/share/novnc ${port} 127.0.0.1:${vncPort} >/tmp/websockify-${username}.log 2>&1 &`,
       'WS_PID=$!',
