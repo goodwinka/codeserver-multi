@@ -229,6 +229,9 @@ app.use('/_auth/gui/:username', async (req, res) => {
   if (req.params.username !== req.session.user.username) return res.status(403).send('Forbidden');
   try {
     const inst = await guiInstances.ensureRunning(req.session.user.username);
+    const guiPrefix = `/_auth/gui/${req.session.user.username}`;
+    const originalUrl = req.originalUrl || req.url || '/';
+    req.url = originalUrl.startsWith(guiPrefix) ? (originalUrl.slice(guiPrefix.length) || '/') : originalUrl;
     proxy.web(req, res, { target: `http://127.0.0.1:${inst.port}` });
   } catch (e) {
     res.status(500).send('Не удалось запустить виртуальный экран: ' + e.message);
@@ -256,7 +259,6 @@ app.use(async (req, res) => {
     return res.redirect('/_auth/login');
   }
   try {
-    await guiInstances.ensureRunning(req.session.user.username);
     const inst = await instances.ensureRunning(req.session.user.username);
     instances.touch(req.session.user.username);
     proxy.web(req, res, { target: `http://127.0.0.1:${inst.port}` });
