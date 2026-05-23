@@ -286,6 +286,9 @@ server.on('upgrade', (req, socket, head) => {
         const gui = await guiInstances.ensureRunning(user.username);
         const originalUrl = req.url || '/';
         req.url = originalUrl.startsWith(guiPrefix) ? originalUrl.slice(guiPrefix.length) || '/' : originalUrl;
+        if (req.url === '/websockify' || req.url.startsWith('/websockify?')) {
+          req.url = req.url.replace('/websockify', '/');
+        }
         proxy.ws(req, socket, head, { target: `ws://127.0.0.1:${gui.port}` });
         return;
       }
