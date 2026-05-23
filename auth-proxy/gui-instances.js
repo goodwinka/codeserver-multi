@@ -6,6 +6,7 @@ const { getDisplayForUser } = require('./gui-display');
 
 const GUI_PORT_MIN = parseInt(process.env.GUI_PORT_MIN || '9100', 10);
 const GUI_PORT_MAX = parseInt(process.env.GUI_PORT_MAX || '9999', 10);
+const GUI_READY_TIMEOUT_MS = parseInt(process.env.GUI_READY_TIMEOUT_MS || '10000', 10);
 
 function portAvailable(port) {
   return new Promise(resolve => {
@@ -25,6 +26,29 @@ async function findFreePort() {
   throw new Error('No free GUI ports in range');
 }
 
+function waitForTcp(port, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  return new Promise((resolve, reject) => {
+    const tick = () => {
+      const socket = net.connect({ host: '127.0.0.1', port });
+      socket.once('connect', () => {
+        socket.destroy();
+        resolve();
+      });
+      socket.once('error', retry);
+      socket.setTimeout(700, () => {
+        socket.destroy();
+        retry();
+      });
+    };
+    const retry = () => {
+      if (Date.now() >= deadline) return reject(new Error(`GUI gateway did not start on port ${port} in ${timeoutMs}ms`));
+      setTimeout(tick, 250);
+    };
+    tick();
+  });
+}
+
 class GuiInstanceManager {
   constructor() {
     this.instances = new Map();
@@ -32,7 +56,10 @@ class GuiInstanceManager {
 
   async ensureRunning(username) {
     const existing = this.instances.get(username);
-    if (existing) return existing;
+    if (existing) {
+      if (existing.startingPromise) await existing.startingPromise;
+      return existing;
+    }
 
     const port = await findFreePort();
     const display = getDisplayForUser(username);
@@ -40,8 +67,13 @@ class GuiInstanceManager {
       'set -euo pipefail',
       `export USERNAME=${JSON.stringify(username)}`,
       `export DISPLAY=${JSON.stringify(display)}`,
-      'Xvfb "$DISPLAY" -screen 0 1600x900x24 >/tmp/xvfb-${USERNAME}.log 2>&1 &',
-      'XVFB_PID=$!',
+      'XVFB_PID=""',
+      'if xdpyinfo -display "$DISPLAY" >/dev/null 2>&1; then',
+      '  echo "display $DISPLAY is already active, reusing"',
+      'else',
+      '  Xvfb "$DISPLAY" -screen 0 1600x900x24 >/tmp/xvfb-${USERNAME}.log 2>&1 &',
+      '  XVFB_PID=$!',
+      'fi',
       'openbox >/tmp/openbox-${USERNAME}.log 2>&1 &',
       'OPENBOX_PID=$!',
       'x11vnc -display "$DISPLAY" -rfbport 0 -localhost -nopw -forever -shared >/tmp/x11vnc-${USERNAME}.log 2>&1 &',
@@ -54,7 +86,12 @@ class GuiInstanceManager {
       'if [ -z "$VNC_PORT" ]; then echo "x11vnc did not report PORT" >&2; exit 1; fi',
       `websockify --web=/usr/share/novnc ${port} 127.0.0.1:$VNC_PORT >/tmp/websockify-${username}.log 2>&1 &`,
       'WS_PID=$!',
-      'cleanup(){ kill "$WS_PID" "$X11VNC_PID" "$OPENBOX_PID" "$XVFB_PID" 2>/dev/null || true; }',
+      'cleanup(){',
+      '  [ -n "$WS_PID" ] && kill "$WS_PID" 2>/dev/null || true;',
+      '  [ -n "$X11VNC_PID" ] && kill "$X11VNC_PID" 2>/dev/null || true;',
+      '  [ -n "$OPENBOX_PID" ] && kill "$OPENBOX_PID" 2>/dev/null || true;',
+      '  [ -n "$XVFB_PID" ] && kill "$XVFB_PID" 2>/dev/null || true;',
+      '}',
       'trap cleanup EXIT INT TERM',
       'wait "$WS_PID"'
     ].join('\n');
@@ -63,13 +100,21 @@ class GuiInstanceManager {
     child.stdout.on('data', d => process.stdout.write(`[gui:${username}] ${d}`));
     child.stderr.on('data', d => process.stderr.write(`[gui:${username}] ${d}`));
 
-    const inst = { username, port, process: child, startedAt: Date.now() };
+    const inst = { username, port, process: child, startedAt: Date.now(), startingPromise: null };
     this.instances.set(username, inst);
 
     child.on('exit', () => {
       if (this.instances.get(username) === inst) this.instances.delete(username);
     });
 
+    inst.startingPromise = Promise.race([
+      waitForTcp(port, GUI_READY_TIMEOUT_MS),
+      new Promise((_, reject) => {
+        child.once('exit', code => reject(new Error(`GUI process exited before ready (code=${code})`)));
+      })
+    ]).finally(() => { inst.startingPromise = null; });
+
+    await inst.startingPromise;
     return inst;
   }
 
