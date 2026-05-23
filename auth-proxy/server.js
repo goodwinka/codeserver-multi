@@ -217,7 +217,7 @@ app.get('/_auth/gui-url', async (req, res) => {
   if (!isSessionUserActive(req.session.user)) return res.status(403).json({ error: 'Forbidden' });
   try {
     const inst = await guiInstances.ensureRunning(req.session.user.username);
-    res.json({ ok: true, url: `/_auth/gui/${req.session.user.username}/vnc.html?autoconnect=1&resize=scale&path=websockify` });
+    res.json({ ok: true, url: `/_auth/gui/${req.session.user.username}/vnc.html?autoconnect=1&resize=scale&path=` });
   } catch (e) {
     res.status(500).json({ error: 'Не удалось запустить виртуальный экран: ' + e.message });
   }
@@ -285,6 +285,9 @@ server.on('upgrade', (req, socket, head) => {
         const guiPrefix = `/_auth/gui/${user.username}`;
         const originalUrl = req.url || '/';
         req.url = originalUrl.startsWith(guiPrefix) ? originalUrl.slice(guiPrefix.length) || '/' : originalUrl;
+        if (req.url === '/websockify' || req.url.startsWith('/websockify?')) {
+          req.url = req.url.replace('/websockify', '/');
+        }
         proxy.ws(req, socket, head, { target: `ws://127.0.0.1:${gui.port}` });
         return;
       }
