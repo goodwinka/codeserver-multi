@@ -16,6 +16,28 @@ function portAvailable(port) {
   });
 }
 
+function waitPortListening(port, timeoutMs = 10000) {
+  const started = Date.now();
+  return new Promise((resolve, reject) => {
+    const tryConnect = () => {
+      const socket = net.connect({ host: '127.0.0.1', port });
+      socket.once('connect', () => {
+        socket.destroy();
+        resolve();
+      });
+      socket.once('error', () => {
+        socket.destroy();
+        if (Date.now() - started >= timeoutMs) {
+          reject(new Error(`GUI gateway did not start on port ${port} in ${timeoutMs}ms`));
+          return;
+        }
+        setTimeout(tryConnect, 150);
+      });
+    };
+    tryConnect();
+  });
+}
+
 async function findFreePort() {
   for (let i = 0; i < 300; i++) {
     const p = GUI_PORT_MIN + Math.floor(Math.random() * (GUI_PORT_MAX - GUI_PORT_MIN + 1));
@@ -32,7 +54,10 @@ class GuiInstanceManager {
 
   async ensureRunning(username) {
     const existing = this.instances.get(username);
-    if (existing) return existing;
+    if (existing) {
+      if (existing.readyPromise) await existing.readyPromise;
+      return existing;
+    }
 
     const port = await findFreePort();
     const display = getDisplayForUser(username);
@@ -48,6 +73,7 @@ class GuiInstanceManager {
       'X11VNC_PID=$!',
       'for i in $(seq 1 40); do',
       '  VNC_PORT=$(sed -n "s/.*PORT=\\([0-9]\\+\\).*/\\1/p" /tmp/x11vnc-${USERNAME}.log | tail -n1)',
+      '  [ -z "$VNC_PORT" ] && VNC_PORT=$(sed -n "s/.*port \([0-9][0-9]*\).*/\\1/p" /tmp/x11vnc-${USERNAME}.log | tail -n1)',
       '  [ -n "$VNC_PORT" ] && break',
       '  sleep 0.25',
       'done',
@@ -64,13 +90,24 @@ class GuiInstanceManager {
     child.stderr.on('data', d => process.stderr.write(`[gui:${username}] ${d}`));
 
     const inst = { username, port, process: child, startedAt: Date.now() };
+    inst.readyPromise = (async () => {
+      await waitPortListening(port);
+      delete inst.readyPromise;
+    })();
+
     this.instances.set(username, inst);
 
     child.on('exit', () => {
       if (this.instances.get(username) === inst) this.instances.delete(username);
     });
 
-    return inst;
+    try {
+      await inst.readyPromise;
+      return inst;
+    } catch (e) {
+      this.stop(username);
+      throw e;
+    }
   }
 
   stop(username) {
