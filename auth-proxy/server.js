@@ -20,6 +20,12 @@ function isSessionUserActive(sessionUser) {
   return !!(dbUser && !dbUser.disabled);
 }
 
+function stripGuiPrefixFromRequest(req, username) {
+  const guiPrefix = `/_auth/gui/${username}`;
+  const originalUrl = req.url || '/';
+  req.url = originalUrl.startsWith(guiPrefix) ? originalUrl.slice(guiPrefix.length) || '/' : originalUrl;
+}
+
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'insecure-dev-secret-change-me';
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'cs_sid';
@@ -217,7 +223,9 @@ app.get('/_auth/gui-url', async (req, res) => {
   if (!isSessionUserActive(req.session.user)) return res.status(403).json({ error: 'Forbidden' });
   try {
     const inst = await guiInstances.ensureRunning(req.session.user.username);
-    res.json({ ok: true, url: `/_auth/gui/${req.session.user.username}/vnc.html?autoconnect=1&resize=scale` });
+    const username = req.session.user.username;
+    const wsPath = encodeURIComponent(`/_auth/gui/${username}/websockify`);
+    res.json({ ok: true, url: `/_auth/gui/${username}/vnc.html?autoconnect=1&resize=scale&path=${wsPath}` });
   } catch (e) {
     res.status(500).json({ error: 'Не удалось запустить виртуальный экран: ' + e.message });
   }
@@ -229,6 +237,7 @@ app.use('/_auth/gui/:username', async (req, res) => {
   if (req.params.username !== req.session.user.username) return res.status(403).send('Forbidden');
   try {
     const inst = await guiInstances.ensureRunning(req.session.user.username);
+    stripGuiPrefixFromRequest(req, req.session.user.username);
     proxy.web(req, res, { target: `http://127.0.0.1:${inst.port}` });
   } catch (e) {
     res.status(500).send('Не удалось запустить виртуальный экран: ' + e.message);
@@ -280,9 +289,7 @@ server.on('upgrade', (req, socket, head) => {
     try {
       if ((req.url || '').startsWith(`/_auth/gui/${user.username}/`)) {
         const gui = await guiInstances.ensureRunning(user.username);
-        const guiPrefix = `/_auth/gui/${user.username}`;
-        const originalUrl = req.url || '/';
-        req.url = originalUrl.startsWith(guiPrefix) ? originalUrl.slice(guiPrefix.length) || '/' : originalUrl;
+        stripGuiPrefixFromRequest(req, user.username);
         proxy.ws(req, socket, head, { target: `ws://127.0.0.1:${gui.port}` });
         return;
       }
