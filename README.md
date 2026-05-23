@@ -112,7 +112,7 @@ docker compose logs -f
 
 ```bash
 docker compose up -d --build
-docker compose exec codeserver-multi bash -lc 'echo $CUDA_HOME && nvcc --version && nvidia-smi'
+docker compose exec codeserver-multi sh -lc 'echo $CUDA_HOME && nvcc --version && nvidia-smi'
 ```
 
 Если `nvcc` не найден, проверьте, что на хосте действительно установлен именно
@@ -185,6 +185,8 @@ CUDA Toolkit (а не только драйвер), и что он доступ�
 docker compose build --no-cache
 docker compose up -d
 ```
+
+Если `docker compose exec ... bash -lc ...` у вас пишет `bash: executable file not found`, значит запущен старый/другой образ (или не этот Dockerfile). Для диагностики используйте `sh -lc` и обязательно пересоберите контейнер.
 
 ## Ограничения и дальнейшая работа
 
