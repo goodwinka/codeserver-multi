@@ -6,6 +6,7 @@ const { getDisplayForUser } = require('./gui-display');
 
 const GUI_PORT_MIN = parseInt(process.env.GUI_PORT_MIN || '9100', 10);
 const GUI_PORT_MAX = parseInt(process.env.GUI_PORT_MAX || '9999', 10);
+const GUI_STARTUP_TIMEOUT_MS = parseInt(process.env.GUI_STARTUP_TIMEOUT_MS || '15000', 10);
 
 function portAvailable(port) {
   return new Promise(resolve => {
@@ -23,6 +24,28 @@ async function findFreePort() {
     if (await portAvailable(p)) return p;
   }
   throw new Error('No free GUI ports in range');
+}
+
+function waitForTcpPort(port, timeoutMs) {
+  const started = Date.now();
+  return new Promise((resolve, reject) => {
+    const tryConnect = () => {
+      const socket = net.createConnection({ host: '127.0.0.1', port });
+      socket.once('connect', () => {
+        socket.destroy();
+        resolve();
+      });
+      socket.once('error', () => {
+        socket.destroy();
+        if ((Date.now() - started) >= timeoutMs) {
+          reject(new Error(`websockify on 127.0.0.1:${port} did not become ready in ${timeoutMs}ms`));
+          return;
+        }
+        setTimeout(tryConnect, 200);
+      });
+    };
+    tryConnect();
+  });
 }
 
 class GuiInstanceManager {
@@ -63,12 +86,25 @@ class GuiInstanceManager {
     child.stdout.on('data', d => process.stdout.write(`[gui:${username}] ${d}`));
     child.stderr.on('data', d => process.stderr.write(`[gui:${username}] ${d}`));
 
-    const inst = { username, port, process: child, startedAt: Date.now() };
+    const inst = { username, port, process: child, startedAt: Date.now(), ready: false };
     this.instances.set(username, inst);
 
     child.on('exit', () => {
       if (this.instances.get(username) === inst) this.instances.delete(username);
     });
+
+    try {
+      await Promise.race([
+        waitForTcpPort(port, GUI_STARTUP_TIMEOUT_MS),
+        new Promise((_, reject) => {
+          child.once('exit', code => reject(new Error(`GUI process exited during startup with code ${code}`)));
+        })
+      ]);
+      inst.ready = true;
+    } catch (e) {
+      this.stop(username);
+      throw e;
+    }
 
     return inst;
   }
