@@ -256,7 +256,6 @@ app.use(async (req, res) => {
     return res.redirect('/_auth/login');
   }
   try {
-    await guiInstances.ensureRunning(req.session.user.username);
     const inst = await instances.ensureRunning(req.session.user.username);
     instances.touch(req.session.user.username);
     proxy.web(req, res, { target: `http://127.0.0.1:${inst.port}` });
