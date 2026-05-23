@@ -4,10 +4,16 @@ ENV DEBIAN_FRONTEND=noninteractive \
     NODE_ENV=production \
     TZ=UTC
 
+# Improve apt resilience in flaky/filtered networks used by CI/build agents.
+RUN set -eux; \
+    sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
+    printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\nAcquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/80-retry-and-timeout
+
 # Base tools + runtimes commonly used inside code-server
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl ca-certificates gnupg lsb-release \
         git openssh-client sudo less vim-tiny tmux \
+        ripgrep iproute2 netcat-openbsd procps \
         build-essential libncurses5-dev python3 python3-pip python3-venv \
         locales tzdata \
     && sed -i 's/# en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen \
