@@ -6,6 +6,8 @@ const { getDisplayForUser } = require('./gui-display');
 
 const GUI_PORT_MIN = parseInt(process.env.GUI_PORT_MIN || '9100', 10);
 const GUI_PORT_MAX = parseInt(process.env.GUI_PORT_MAX || '9999', 10);
+const VNC_PORT_MIN = parseInt(process.env.VNC_PORT_MIN || '5901', 10);
+const VNC_PORT_MAX = parseInt(process.env.VNC_PORT_MAX || '6899', 10);
 const GUI_READY_TIMEOUT_MS = parseInt(process.env.GUI_READY_TIMEOUT_MS || '10000', 10);
 
 function portAvailable(port) {
@@ -24,6 +26,15 @@ async function findFreePort() {
     if (await portAvailable(p)) return p;
   }
   throw new Error('No free GUI ports in range');
+}
+
+async function findFreeVncPort() {
+  for (let i = 0; i < 300; i++) {
+    const p = VNC_PORT_MIN + Math.floor(Math.random() * (VNC_PORT_MAX - VNC_PORT_MIN + 1));
+    // eslint-disable-next-line no-await-in-loop
+    if (await portAvailable(p)) return p;
+  }
+  throw new Error('No free VNC ports in range');
 }
 
 function waitForTcp(port, timeoutMs) {
@@ -62,6 +73,7 @@ class GuiInstanceManager {
     }
 
     const port = await findFreePort();
+    const vncPort = await findFreeVncPort();
     const display = getDisplayForUser(username);
     const script = [
       'set -euo pipefail',
@@ -76,15 +88,9 @@ class GuiInstanceManager {
       'fi',
       'openbox >/tmp/openbox-${USERNAME}.log 2>&1 &',
       'OPENBOX_PID=$!',
-      'x11vnc -display "$DISPLAY" -rfbport 0 -localhost -nopw -forever -shared >/tmp/x11vnc-${USERNAME}.log 2>&1 &',
+      `x11vnc -display "$DISPLAY" -rfbport ${vncPort} -localhost -nopw -forever -shared >/tmp/x11vnc-${USERNAME}.log 2>&1 &`,
       'X11VNC_PID=$!',
-      'for i in $(seq 1 40); do',
-      '  VNC_PORT=$(awk \'match($0,/PORT=[0-9]+/){print substr($0,RSTART+5,RLENGTH-5)}\' /tmp/x11vnc-${USERNAME}.log | tail -n1)',
-      '  [ -n "$VNC_PORT" ] && break',
-      '  sleep 0.25',
-      'done',
-      'if [ -z "$VNC_PORT" ]; then echo "x11vnc did not report PORT" >&2; exit 1; fi',
-      `websockify --web=/usr/share/novnc ${port} 127.0.0.1:$VNC_PORT >/tmp/websockify-${username}.log 2>&1 &`,
+      `websockify --web=/usr/share/novnc ${port} 127.0.0.1:${vncPort} >/tmp/websockify-${username}.log 2>&1 &`,
       'WS_PID=$!',
       'cleanup(){',
       '  [ -n "$WS_PID" ] && kill "$WS_PID" 2>/dev/null || true;',
