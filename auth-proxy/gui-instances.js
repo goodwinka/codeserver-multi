@@ -50,28 +50,6 @@ function waitForTcpPort(port, timeoutMs) {
   });
 }
 
-function waitForTcpPort(port, timeoutMs) {
-  const started = Date.now();
-  return new Promise((resolve, reject) => {
-    const tryConnect = () => {
-      const socket = net.createConnection({ host: '127.0.0.1', port });
-      socket.once('connect', () => {
-        socket.destroy();
-        resolve();
-      });
-      socket.once('error', () => {
-        socket.destroy();
-        if ((Date.now() - started) >= timeoutMs) {
-          reject(new Error(`websockify on 127.0.0.1:${port} did not become ready in ${timeoutMs}ms`));
-          return;
-        }
-        setTimeout(tryConnect, 200);
-      });
-    };
-    tryConnect();
-  });
-}
-
 class GuiInstanceManager {
   constructor() {
     this.instances = new Map();
@@ -96,11 +74,11 @@ class GuiInstanceManager {
       'x11vnc -display "$DISPLAY" -rfbport "$VNC_PORT" -localhost -nopw -forever -shared >/tmp/x11vnc-${USERNAME}.log 2>&1 &',
       'X11VNC_PID=$!',
       'for i in $(seq 1 80); do',
-      '  if ss -ltn "( sport = :$VNC_PORT )" | grep -q LISTEN; then break; fi',
+      '  if (echo >"/dev/tcp/127.0.0.1/$VNC_PORT") >/dev/null 2>&1; then break; fi',
       '  if ! kill -0 "$X11VNC_PID" 2>/dev/null; then echo "x11vnc exited before listening" >&2; exit 1; fi',
       '  sleep 0.1',
       'done',
-      'if ! ss -ltn "( sport = :$VNC_PORT )" | grep -q LISTEN; then echo "x11vnc did not start listening on $VNC_PORT" >&2; exit 1; fi',
+      'if ! (echo >"/dev/tcp/127.0.0.1/$VNC_PORT") >/dev/null 2>&1; then echo "x11vnc did not start listening on $VNC_PORT" >&2; exit 1; fi',
       `websockify --web=/usr/share/novnc ${port} 127.0.0.1:$VNC_PORT >/tmp/websockify-${username}.log 2>&1 &`,
       'WS_PID=$!',
       'cleanup(){ kill "$WS_PID" "$X11VNC_PID" "$OPENBOX_PID" "$XVFB_PID" 2>/dev/null || true; }',
