@@ -50,6 +50,28 @@ function waitForTcpPort(port, timeoutMs) {
   });
 }
 
+function waitForTcpPort(port, timeoutMs) {
+  const started = Date.now();
+  return new Promise((resolve, reject) => {
+    const tryConnect = () => {
+      const socket = net.createConnection({ host: '127.0.0.1', port });
+      socket.once('connect', () => {
+        socket.destroy();
+        resolve();
+      });
+      socket.once('error', () => {
+        socket.destroy();
+        if ((Date.now() - started) >= timeoutMs) {
+          reject(new Error(`websockify on 127.0.0.1:${port} did not become ready in ${timeoutMs}ms`));
+          return;
+        }
+        setTimeout(tryConnect, 200);
+      });
+    };
+    tryConnect();
+  });
+}
+
 class GuiInstanceManager {
   constructor() {
     this.instances = new Map();
