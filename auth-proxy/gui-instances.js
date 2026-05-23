@@ -18,7 +18,7 @@ function portAvailable(port) {
 
 async function findFreePort() {
   for (let i = 0; i < 300; i++) {
-    const p = GUI_PORT_MIN + Math.floor(Math.random() * (GUI_PORT_MAX - GUI_PORT_MIN));
+    const p = GUI_PORT_MIN + Math.floor(Math.random() * (GUI_PORT_MAX - GUI_PORT_MIN + 1));
     // eslint-disable-next-line no-await-in-loop
     if (await portAvailable(p)) return p;
   }
@@ -46,9 +46,12 @@ class GuiInstanceManager {
       'OPENBOX_PID=$!',
       'x11vnc -display "$DISPLAY" -rfbport 0 -localhost -nopw -forever -shared >/tmp/x11vnc-${USERNAME}.log 2>&1 &',
       'X11VNC_PID=$!',
-      'sleep 1',
-      'VNC_PORT=$(sed -n "s/.*PORT=\\([0-9]\\+\\).*/\\1/p" /tmp/x11vnc-${USERNAME}.log | tail -n1)',
-      'if [ -z "$VNC_PORT" ]; then VNC_PORT=5900; fi',
+      'for i in $(seq 1 40); do',
+      '  VNC_PORT=$(sed -n "s/.*PORT=\\([0-9]\\+\\).*/\\1/p" /tmp/x11vnc-${USERNAME}.log | tail -n1)',
+      '  [ -n "$VNC_PORT" ] && break',
+      '  sleep 0.25',
+      'done',
+      'if [ -z "$VNC_PORT" ]; then echo "x11vnc did not report PORT" >&2; exit 1; fi',
       `websockify --web=/usr/share/novnc ${port} 127.0.0.1:$VNC_PORT >/tmp/websockify-${username}.log 2>&1 &`,
       'WS_PID=$!',
       'cleanup(){ kill "$WS_PID" "$X11VNC_PID" "$OPENBOX_PID" "$XVFB_PID" 2>/dev/null || true; }',

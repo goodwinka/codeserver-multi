@@ -280,6 +280,9 @@ server.on('upgrade', (req, socket, head) => {
     try {
       if ((req.url || '').startsWith(`/_auth/gui/${user.username}/`)) {
         const gui = await guiInstances.ensureRunning(user.username);
+        const guiPrefix = `/_auth/gui/${user.username}`;
+        const originalUrl = req.url || '/';
+        req.url = originalUrl.startsWith(guiPrefix) ? originalUrl.slice(guiPrefix.length) || '/' : originalUrl;
         proxy.ws(req, socket, head, { target: `ws://127.0.0.1:${gui.port}` });
         return;
       }
