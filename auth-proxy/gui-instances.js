@@ -63,7 +63,9 @@ class GuiInstanceManager {
       `export DISPLAY=${JSON.stringify(display)}`,
       'Xvfb "$DISPLAY" -screen 0 1600x900x24 >/tmp/xvfb-${USERNAME}.log 2>&1 &',
       'XVFB_PID=$!',
-      'openbox >/tmp/openbox-${USERNAME}.log 2>&1 &',
+      'for i in $(seq 1 50); do xdpyinfo -display "$DISPLAY" >/dev/null 2>&1 && break; sleep 0.2; done',
+      'xdpyinfo -display "$DISPLAY" >/dev/null 2>&1 || { echo "Xvfb did not become ready" >&2; exit 1; }',
+      'openbox -display "$DISPLAY" >/tmp/openbox-${USERNAME}.log 2>&1 &',
       'OPENBOX_PID=$!',
       `x11vnc -display "$DISPLAY" -rfbport ${vncPort} -localhost -nopw -forever -shared -noxdamage >/tmp/x11vnc-\${USERNAME}.log 2>&1 &`,
       'X11VNC_PID=$!',
@@ -85,7 +87,7 @@ class GuiInstanceManager {
       if (this.instances.get(username) === inst) this.instances.delete(username);
     });
 
-    inst.startingPromise = waitForTcp(port)
+    inst.startingPromise = Promise.all([waitForTcp(vncPort), waitForTcp(port)])
       .then(() => { inst.startingPromise = null; })
       .catch(err => {
         this.stop(username);

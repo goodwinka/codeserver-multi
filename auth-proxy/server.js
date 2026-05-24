@@ -12,6 +12,7 @@ const users = require('./users');
 const instances = require('./instances');
 const adminApi = require('./admin-api');
 const guiInstances = require('./gui-instances');
+const { stripGuiPrefix } = require('./gui-proxy-path');
 
 // Returns true if the session user still exists and is not disabled.
 function isSessionUserActive(sessionUser) {
@@ -92,6 +93,7 @@ proxy.on('proxyRes', proxyRes => {
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', true);
+
 app.use(sessionMiddleware);
 
 
@@ -212,13 +214,33 @@ app.get('/_auth/admin', (req, res) => {
 app.use('/_auth/api', adminApi);
 
 
+
+app.get('/_auth/gui-debug', async (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Unauthorized' });
+  if (!isSessionUserActive(req.session.user)) return res.status(403).json({ error: 'Forbidden' });
+  try {
+    const inst = await guiInstances.ensureRunning(req.session.user.username);
+    res.json({
+      ok: true,
+      username: req.session.user.username,
+      proxyOrigin: `${req.protocol}://${req.get('host')}`,
+      guiHttpBase: `/_auth/gui/${req.session.user.username}/`,
+      websockifyPath: `/_auth/gui/${req.session.user.username}/websockify/`,
+      noVncUrl: `/_auth/gui/${req.session.user.username}/vnc.html?autoconnect=1&resize=scale&path=${encodeURIComponent(`/_auth/gui/${req.session.user.username}/websockify/`)}`,
+      internal: { websockifyPort: inst.port, vncPort: inst.vncPort }
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'GUI debug failed: ' + e.message });
+  }
+});
+
 app.get('/_auth/gui-url', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Unauthorized' });
   if (!isSessionUserActive(req.session.user)) return res.status(403).json({ error: 'Forbidden' });
   try {
     const inst = await guiInstances.ensureRunning(req.session.user.username);
-    const basePath = `/_auth/gui/${req.session.user.username}/websockify`;
-    const guiUrl = `/_auth/gui/${req.session.user.username}/vnc.html?autoconnect=1&resize=scale&host=${encodeURIComponent(req.hostname || 'localhost')}&port=${PORT}&path=${encodeURIComponent(basePath)}`;
+    const websockifyPath = `/_auth/gui/${req.session.user.username}/websockify/`;
+    const guiUrl = `/_auth/gui/${req.session.user.username}/vnc.html?autoconnect=1&resize=scale&path=${encodeURIComponent(websockifyPath)}`;
     res.json({ ok: true, url: guiUrl });
   } catch (e) {
     res.status(500).json({ error: 'Не удалось запустить виртуальный экран: ' + e.message });
@@ -282,6 +304,10 @@ server.on('upgrade', (req, socket, head) => {
     try {
       if ((req.url || '').startsWith(`/_auth/gui/${user.username}/`)) {
         const gui = await guiInstances.ensureRunning(user.username);
+        const originalUrl = req.url || '/';
+        req.url = stripGuiPrefix(originalUrl, user.username);
+        if (!req.url.startsWith('/')) req.url = `/${req.url}`;
+        console.log(`[ws-gui] ${user.username} ${originalUrl} -> ${req.url} via ${gui.port}`);
         proxy.ws(req, socket, head, { target: `ws://127.0.0.1:${gui.port}` });
         return;
       }

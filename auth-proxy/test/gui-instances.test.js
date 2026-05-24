@@ -34,9 +34,13 @@ test('ensureRunning waits for reachable websockify port and uses distinct VNC po
     child.stderr = new events.EventEmitter();
     child.kill = () => child.emit('exit', 0);
 
-    const srv = net.createServer();
-    srv.listen(wsPort, '127.0.0.1');
-    openedServers.push(srv);
+    const wsSrv = net.createServer();
+    wsSrv.listen(wsPort, '127.0.0.1');
+    openedServers.push(wsSrv);
+
+    const vncSrv = net.createServer();
+    vncSrv.listen(vncPort, '127.0.0.1');
+    openedServers.push(vncSrv);
 
     return child;
   };
