@@ -31,6 +31,33 @@ const SESSION_TTL_SECONDS = parseInt(process.env.SESSION_TTL_SECONDS || String(1
 // allow same-origin app/websocket calls plus outbound HTTP(S) used by extensions.
 const BROWSER_CONNECT_CSP = "connect-src 'self' ws: wss: http: https:;";
 
+function waitForCodeServerProxy(csPort, targetPort, timeoutMs = 10000) {
+  const deadline = Date.now() + timeoutMs;
+  return new Promise((resolve, reject) => {
+    const attempt = () => {
+      const req = http.request({
+        host: '127.0.0.1',
+        port: csPort,
+        path: `/proxy/${targetPort}/vnc.html`,
+        method: 'GET',
+        timeout: 1500
+      }, res => {
+        res.resume();
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 500) return resolve();
+        retry(new Error(`proxy status=${res.statusCode}`));
+      });
+      req.on('error', retry);
+      req.on('timeout', () => { req.destroy(); retry(new Error('proxy probe timeout')); });
+      req.end();
+    };
+    const retry = err => {
+      if (Date.now() >= deadline) return reject(err);
+      setTimeout(attempt, 250);
+    };
+    attempt();
+  });
+}
+
 
 // ----- Bootstrap admin if configured -----
 (async () => {
@@ -216,10 +243,17 @@ app.get('/_auth/gui-url', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Unauthorized' });
   if (!isSessionUserActive(req.session.user)) return res.status(403).json({ error: 'Forbidden' });
   try {
+    // /proxy/<port>/ обслуживается code-server, поэтому поднимаем его заранее.
+    const csInst = await instances.ensureRunning(req.session.user.username);
     const inst = await guiInstances.ensureRunning(req.session.user.username);
-    const basePath = `/_auth/gui/${req.session.user.username}/websockify`;
-    const guiUrl = `/_auth/gui/${req.session.user.username}/vnc.html?autoconnect=1&resize=scale&host=${encodeURIComponent(req.hostname || 'localhost')}&port=${PORT}&path=${encodeURIComponent(basePath)}`;
-    res.json({ ok: true, url: guiUrl });
+    // Принудительно прогреваем встроенный /proxy/<port>/ в code-server перед выдачей URL.
+    await waitForCodeServerProxy(csInst.port, inst.port);
+    const proxyBase = `/proxy/${inst.port}`;
+    // websockify serves websocket on "/" for this instance; keep path as /proxy/<port>/
+    // to match manual noVNC settings that are known to work in VS Code proxy.
+    const wsPath = `${proxyBase}/`;
+    const guiUrl = `${proxyBase}/vnc.html?autoconnect=1&resize=scale&path=${encodeURIComponent(wsPath)}`;
+    res.json({ ok: true, url: guiUrl, port: inst.port, path: wsPath });
   } catch (e) {
     res.status(500).json({ error: 'Не удалось запустить виртуальный экран: ' + e.message });
   }

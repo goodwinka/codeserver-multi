@@ -63,10 +63,18 @@ class GuiInstanceManager {
       `export DISPLAY=${JSON.stringify(display)}`,
       'Xvfb "$DISPLAY" -screen 0 1600x900x24 >/tmp/xvfb-${USERNAME}.log 2>&1 &',
       'XVFB_PID=$!',
+      // Ждём, пока Xvfb реально поднимет DISPLAY, иначе x11vnc может завершиться сразу.
+      // Проверяем unix-сокет X11, чтобы не зависеть от наличия xdpyinfo/x11-utils.
+      'DISPLAY_NUM=${DISPLAY#:}',
+      'for _ in $(seq 1 50); do [ -S "/tmp/.X11-unix/X${DISPLAY_NUM}" ] && break; sleep 0.2; done',
+      '[ -S "/tmp/.X11-unix/X${DISPLAY_NUM}" ]',
       'openbox >/tmp/openbox-${USERNAME}.log 2>&1 &',
       'OPENBOX_PID=$!',
-      `x11vnc -display "$DISPLAY" -rfbport ${vncPort} -localhost -nopw -forever -shared -noxdamage >/tmp/x11vnc-\${USERNAME}.log 2>&1 &`,
+      `x11vnc -display "$DISPLAY" -rfbport ${vncPort} -localhost -nopw -forever -shared -noxdamage -o /tmp/x11vnc-\${USERNAME}.log &`,
       'X11VNC_PID=$!',
+      // Ждём, пока VNC-порт станет доступным перед стартом websockify.
+      `for _ in $(seq 1 50); do exec 3<>/dev/tcp/127.0.0.1/${vncPort} >/dev/null 2>&1 && break; sleep 0.2; done`,
+      `exec 3<>/dev/tcp/127.0.0.1/${vncPort} >/dev/null 2>&1`,
       `websockify --web=/usr/share/novnc ${port} 127.0.0.1:${vncPort} >/tmp/websockify-${username}.log 2>&1 &`,
       'WS_PID=$!',
       'cleanup(){ kill "$WS_PID" "$X11VNC_PID" "$OPENBOX_PID" "$XVFB_PID" 2>/dev/null || true; }',
