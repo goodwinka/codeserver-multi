@@ -25,6 +25,25 @@ async function findFreePort() {
   throw new Error('No free GUI ports in range');
 }
 
+function waitForTcp(port, timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs;
+  return new Promise((resolve, reject) => {
+    const tryConnect = () => {
+      const sock = net.createConnection({ host: '127.0.0.1', port });
+      sock.once('connect', () => {
+        sock.destroy();
+        resolve();
+      });
+      sock.once('error', () => {
+        sock.destroy();
+        if (Date.now() >= deadline) return reject(new Error(`GUI port ${port} did not open in time`));
+        setTimeout(tryConnect, 200);
+      });
+    };
+    tryConnect();
+  });
+}
+
 class GuiInstanceManager {
   constructor() {
     this.instances = new Map();
@@ -35,6 +54,8 @@ class GuiInstanceManager {
     if (existing) return existing;
 
     const port = await findFreePort();
+    let vncPort = await findFreePort();
+    while (vncPort === port) vncPort = await findFreePort();
     const display = getDisplayForUser(username);
     const script = [
       'set -euo pipefail',
@@ -44,12 +65,9 @@ class GuiInstanceManager {
       'XVFB_PID=$!',
       'openbox >/tmp/openbox-${USERNAME}.log 2>&1 &',
       'OPENBOX_PID=$!',
-      'x11vnc -display "$DISPLAY" -rfbport 0 -localhost -nopw -forever -shared >/tmp/x11vnc-${USERNAME}.log 2>&1 &',
+      `x11vnc -display "$DISPLAY" -rfbport ${vncPort} -localhost -nopw -forever -shared -noxdamage >/tmp/x11vnc-\${USERNAME}.log 2>&1 &`,
       'X11VNC_PID=$!',
-      'sleep 1',
-      'VNC_PORT=$(sed -n "s/.*PORT=\\([0-9]\\+\\).*/\\1/p" /tmp/x11vnc-${USERNAME}.log | tail -n1)',
-      'if [ -z "$VNC_PORT" ]; then VNC_PORT=5900; fi',
-      `websockify --web=/usr/share/novnc ${port} 127.0.0.1:$VNC_PORT >/tmp/websockify-${username}.log 2>&1 &`,
+      `websockify --web=/usr/share/novnc ${port} 127.0.0.1:${vncPort} >/tmp/websockify-${username}.log 2>&1 &`,
       'WS_PID=$!',
       'cleanup(){ kill "$WS_PID" "$X11VNC_PID" "$OPENBOX_PID" "$XVFB_PID" 2>/dev/null || true; }',
       'trap cleanup EXIT INT TERM',
@@ -60,12 +78,21 @@ class GuiInstanceManager {
     child.stdout.on('data', d => process.stdout.write(`[gui:${username}] ${d}`));
     child.stderr.on('data', d => process.stderr.write(`[gui:${username}] ${d}`));
 
-    const inst = { username, port, process: child, startedAt: Date.now() };
+    const inst = { username, port, vncPort, process: child, startedAt: Date.now(), startingPromise: null };
     this.instances.set(username, inst);
 
     child.on('exit', () => {
       if (this.instances.get(username) === inst) this.instances.delete(username);
     });
+
+    inst.startingPromise = waitForTcp(port)
+      .then(() => { inst.startingPromise = null; })
+      .catch(err => {
+        this.stop(username);
+        throw err;
+      });
+
+    await inst.startingPromise;
 
     return inst;
   }

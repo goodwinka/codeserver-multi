@@ -217,7 +217,9 @@ app.get('/_auth/gui-url', async (req, res) => {
   if (!isSessionUserActive(req.session.user)) return res.status(403).json({ error: 'Forbidden' });
   try {
     const inst = await guiInstances.ensureRunning(req.session.user.username);
-    res.json({ ok: true, url: `/_auth/gui/${req.session.user.username}/vnc.html?autoconnect=1&resize=scale` });
+    const basePath = `/_auth/gui/${req.session.user.username}/websockify`;
+    const guiUrl = `/_auth/gui/${req.session.user.username}/vnc.html?autoconnect=1&resize=scale&host=${encodeURIComponent(req.hostname || 'localhost')}&port=${PORT}&path=${encodeURIComponent(basePath)}`;
+    res.json({ ok: true, url: guiUrl });
   } catch (e) {
     res.status(500).json({ error: 'Не удалось запустить виртуальный экран: ' + e.message });
   }
