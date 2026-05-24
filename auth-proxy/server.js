@@ -218,7 +218,7 @@ app.get('/_auth/gui-url', async (req, res) => {
   try {
     const inst = await guiInstances.ensureRunning(req.session.user.username);
     const basePath = `/_auth/gui/${req.session.user.username}/websockify`;
-    const guiUrl = `/_auth/gui/${req.session.user.username}/vnc.html?autoconnect=1&resize=scale&host=${encodeURIComponent(req.hostname || 'localhost')}&port=${PORT}&path=${encodeURIComponent(basePath)}`;
+    const guiUrl = `/_auth/gui/${req.session.user.username}/vnc.html?autoconnect=1&resize=scale&path=${encodeURIComponent(basePath)}`;
     res.json({ ok: true, url: guiUrl });
   } catch (e) {
     res.status(500).json({ error: 'Не удалось запустить виртуальный экран: ' + e.message });
