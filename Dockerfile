@@ -15,6 +15,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
+# Anaconda (full Python distribution with many preinstalled packages)
+# By default we resolve the latest available Linux x86_64 installer at build time.
+# You can still pin explicitly with: --build-arg ANACONDA_VERSION=<version>
+ARG ANACONDA_VERSION=latest
+RUN set -eux; \
+    if [ "${ANACONDA_VERSION}" = "latest" ]; then \
+      ANACONDA_VERSION="$(curl -fsSL https://repo.anaconda.com/archive/ \
+        | sed -n 's/.*Anaconda3-\([0-9][0-9][0-9][0-9]\.[0-9][0-9]-[0-9]\)-Linux-x86_64\.sh.*/\1/p' \
+        | sort -V \
+        | tail -n 1)"; \
+    fi; \
+    curl -fsSL \
+        "https://repo.anaconda.com/archive/Anaconda3-${ANACONDA_VERSION}-Linux-x86_64.sh" \
+        -o /tmp/anaconda.sh \
+    && bash /tmp/anaconda.sh -b -p /opt/anaconda \
+    && rm -f /tmp/anaconda.sh \
+    && /opt/anaconda/bin/conda config --system --set auto_activate_base false \
+    && ln -sf /opt/anaconda/bin/conda /usr/local/bin/conda \
+    && ln -sf /opt/anaconda/bin/python /usr/local/bin/python
+ENV PATH="/opt/anaconda/bin:${PATH}"
+
 # Node.js 20 LTS (used by both the auth-proxy and by code-server runtime tooling)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
