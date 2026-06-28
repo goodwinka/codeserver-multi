@@ -1,6 +1,8 @@
 'use strict';
 
 const http = require('http');
+const https = require('https');
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -21,11 +23,27 @@ function isSessionUserActive(sessionUser) {
 }
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
+const SSL_CERT = process.env.SSL_CERT || '/config/ssl/cert.pem';
+const SSL_KEY = process.env.SSL_KEY || '/config/ssl/key.pem';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'insecure-dev-secret-change-me';
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'cs_sid';
 const SESSIONS_DIR = process.env.SESSIONS_DIR || '/config/sessions';
 const ALLOW_REGISTRATION = process.env.ALLOW_REGISTRATION === 'true';
 const SESSION_TTL_SECONDS = parseInt(process.env.SESSION_TTL_SECONDS || String(10 * 365 * 24 * 3600), 10); // 10 лет
+
+// Load TLS credentials if present — enables HTTPS (required for crypto.subtle / WebCrypto on LAN).
+let tlsOptions = null;
+try {
+  if (fs.existsSync(SSL_CERT) && fs.existsSync(SSL_KEY)) {
+    tlsOptions = {
+      cert: fs.readFileSync(SSL_CERT),
+      key: fs.readFileSync(SSL_KEY),
+    };
+  }
+} catch (e) {
+  console.error('[tls] failed to load certificates:', e.message);
+}
+const isHttps = tlsOptions !== null;
 
 // Enforce browser-side egress limits with a balanced CSP:
 // allow same-origin app/websocket calls plus outbound HTTP(S) used by extensions.
@@ -90,7 +108,7 @@ const sessionMiddleware = session({
     httpOnly: true,
     sameSite: 'lax',
     maxAge: SESSION_TTL_SECONDS * 1000,
-    // secure: true,  // включите при HTTPS
+    secure: isHttps,
   }
 });
 
@@ -302,8 +320,10 @@ app.use(async (req, res) => {
   }
 });
 
-// ----- HTTP server with WS upgrade handling -----
-const server = http.createServer(app);
+// ----- HTTP / HTTPS server with WS upgrade handling -----
+const server = isHttps
+  ? https.createServer(tlsOptions, app)
+  : http.createServer(app);
 
 server.on('upgrade', (req, socket, head) => {
   // Восстанавливаем сессию по cookie
@@ -330,7 +350,12 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[auth-proxy] listening on 0.0.0.0:${PORT}`);
+  const proto = isHttps ? 'https' : 'http';
+  console.log(`[auth-proxy] listening on ${proto}://0.0.0.0:${PORT}`);
+  if (!isHttps) {
+    console.warn('[auth-proxy] WARNING: running in plain HTTP mode — crypto.subtle will not work on LAN clients');
+    console.warn('[auth-proxy] Set SSL_SAN_IP in docker-compose.yml and restart to enable HTTPS');
+  }
 });
 
 function shutdown(sig) {

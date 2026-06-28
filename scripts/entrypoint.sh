@@ -108,4 +108,48 @@ if [ -z "$(ls -A /opt/shared-extensions 2>/dev/null || true)" ] && [ -f /config/
   /scripts/install-extensions.sh /config/extensions.json || echo "[entrypoint] extension bootstrap had errors (non-fatal)"
 fi
 
+# ----- TLS: self-signed certificate -----
+# crypto.subtle (WebCrypto) is only available in a "secure context" — HTTPS or localhost.
+# Without HTTPS, VS Code webviews (including Claude Code) show a blank window when accessed
+# from other machines on the LAN via HTTP.  We generate a self-signed cert once and store
+# it in /config/ssl/ so it survives container restarts.
+#
+# To include your server's LAN IP in the certificate's SAN, set SSL_SAN_IP in docker-compose:
+#   SSL_SAN_IP: "192.168.0.51"
+# If not set, the script tries to detect the IP automatically.
+# Users will see a browser warning about the self-signed cert on first visit — just click
+# "Advanced → Accept" once per browser.
+mkdir -p /config/ssl
+if [ ! -f /config/ssl/cert.pem ] || [ ! -f /config/ssl/key.pem ]; then
+  # Prefer explicit env var; fall back to auto-detection
+  _san_ip="${SSL_SAN_IP:-}"
+  if [ -z "$_san_ip" ]; then
+    _san_ip="$(ip route get 1.1.1.1 2>/dev/null | awk '/src/{print $NF; exit}' || true)"
+    if [ -z "$_san_ip" ]; then
+      _san_ip="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+    fi
+  fi
+
+  _san="IP:127.0.0.1,DNS:localhost"
+  _cn="codeserver-local"
+  if [ -n "$_san_ip" ]; then
+    _san="IP:${_san_ip},${_san}"
+    _cn="${_san_ip}"
+  fi
+
+  if openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+      -keyout /config/ssl/key.pem \
+      -out /config/ssl/cert.pem \
+      -subj "/CN=${_cn}" \
+      -addext "subjectAltName=${_san}" \
+      2>/dev/null; then
+    chmod 600 /config/ssl/key.pem
+    echo "[entrypoint] SSL certificate generated (CN=${_cn}, SAN=${_san})"
+    echo "[entrypoint] Access via: https://${_cn}:PORT  (accept the browser self-signed cert warning once)"
+  else
+    echo "[entrypoint] WARNING: SSL certificate generation failed — server will start in plain HTTP mode"
+    rm -f /config/ssl/cert.pem /config/ssl/key.pem
+  fi
+fi
+
 exec node /app/server.js

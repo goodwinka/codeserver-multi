@@ -25,6 +25,11 @@ services:
       ALLOW_REGISTRATION: "true"
       # Имя cookie с сессией
       SESSION_COOKIE_NAME: "cs_sid"
+      # LAN IP этого сервера — нужен для SubjectAltName в самоподписанном TLS-сертификате.
+      # Без него crypto.subtle / WebCrypto не работает на клиентах в локальной сети,
+      # из-за чего плагин Claude Code показывает пустое окно.
+      # Укажите реальный IP машины, на которой запущен контейнер:
+      SSL_SAN_IP: "192.168.0.51"
       # API-ключ для Qwen Code (локальный LLM не требует настоящего ключа)
       QWEN_API_KEY: "sk-no-key-required"
       # NVIDIA runtime vars
